@@ -1,0 +1,401 @@
+/* ============================= */
+/* 전체 레이아웃 */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f5f6fa;
+}
+
+.layout {
+    display: flex;
+    height: 100vh;
+}
+
+/* ============================= */
+/* 사이드바 */
+.sidebar {
+    width: 220px;
+    background-color: #334155;
+    color: white;
+    padding: 20px;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 5;
+}
+
+.sidebar ul li {
+    margin-bottom: 30px;
+}
+
+.sidebar ul li a {
+    color: white;
+    text-decoration: none;
+}
+
+.sidebar ul li a:hover {
+    text-decoration: underline;
+}
+
+/* ============================= */
+/* 메인 */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    margin: 0;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ============================= */
+/* 업무 리스트 */
+.task-section {
+    display: flex;
+    margin-top: 20px;
+    gap: 20px;
+}
+
+.task-lists {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.task-box {
+    background-color: white;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.task-card {
+    display: flex;
+    justify-content: space-between;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.task-card:hover {
+    background-color: #e9ecef;
+}
+
+.task-card .left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.task-card .star {
+    cursor: pointer;
+}
+
+.task-card .right button {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 5px;
+    background-color: #64748b;
+    color: white;
+    cursor: pointer;
+}
+
+.task-card .right button:hover {
+    background-color: #475569;
+}
+
+/* ============================= */
+/* 달력 */
+.calendar-box {
+    width: 500px;
+    background-color: white;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #334155;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 8px;
+}
+
+.calendar-header button {
+    background-color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+}
+
+.calendar-header button:hover {
+    background-color: #e2e8f0;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-top: 10px;
+}
+
+.calendar-day-name {
+    font-weight: bold;
+    text-align: center;
+    padding: 5px 0;
+    border-bottom: 1px solid #ccc;
+}
+
+/* 일요일 빨강, 토요일 파랑 */
+.calendar-day-name:nth-child(7n + 1),
+.calendar-cell:nth-child(7n + 1) {
+    color: red;
+}
+
+.calendar-day-name:nth-child(7n),
+.calendar-cell:nth-child(7n) {
+    color: blue;
+}
+
+.calendar-cell {
+    border: 1px solid #e2e8f0;
+    min-height: 70px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 5px 0;
+    background-color: white;
+}
+
+.calendar-cell:hover {
+    background-color: #f1f5f9;
+    cursor: pointer;
+}
+
+.empty {
+    background-color: #f9fafb;
+    border: 1px solid #e2e8f0;
+    cursor: default;
+}
+
+/* 날짜 숫자 */
+.date-number {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+/* 점 표시 */
+.dot-box {
+    display: flex;
+    justify-content: center;
+    margin-top: 5px;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin: 0 2px;
+}
+
+.dot.red {
+    background-color: red;
+}
+
+.dot.yellow {
+    background-color: orange;
+}
+/* ============================= */
+/* 모달 공통 */
+/* ============================= */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin: auto;
+    position: relative;
+    top: 10%;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* ============================= */
+/* 캘린더 모달 */
+/* ============================= */
+#calendar-modal .modal-content {
+    width: 400px;
+}
+
+/* ============================= */
+/* 업무 요청 폼 */
+/* ============================= */
+.request-form-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: white;
+    border-radius: 16px;
+    padding: 30px 40px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.request-form-container h2 {
+    margin-top: 0;
+    color: #334155;
+    text-align: center;
+    font-size: 24px;
+    margin-bottom: 25px;
+}
+
+/* 폼 요소 */
+.request-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.request-form .form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.request-form .form-group label {
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 6px;
+}
+
+.request-form .form-group input,
+.request-form .form-group select,
+.request-form .form-group textarea {
+    padding: 10px 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background-color: #f9fafb;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.request-form .form-group input:focus,
+.request-form .form-group select:focus,
+.request-form .form-group textarea:focus {
+    border-color: #334155;
+}
+
+/* 설명란 */
+.request-form .form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* 날짜와 상태 그룹 */
+.date-status-row {
+    display: flex;
+    gap: 20px;
+}
+
+.date-status-row .form-group {
+    flex: 1;
+}
+
+/* 버튼 */
+.request-form .form-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.request-form .btn-submit {
+    background-color: #334155;
+    color: white;
+    padding: 10px 28px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background-color 0.3s;
+}
+
+.request-form .btn-submit:hover {
+    background-color: #1e293b;
+}
+
+.request-form .btn-cancel {
+    background-color: #e2e8f0;
+    color: #334155;
+    padding: 10px 28px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: background-color 0.3s;
+}
+
+.request-form .btn-cancel:hover {
+    background-color: #cbd5e1;
+}
+
+
+/* 날짜 단축 버튼 */
+.date-buttons button {
+    padding: 6px 14px;
+    border: 1px solid #cbd5e1;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.date-buttons button:hover {
+    background-color: #e2e8f0;
+    border-color: #94a3b8;
+}
+
+.date-buttons button:active {
+    background-color: #cbd5e1;
+    transform: scale(0.97);
+}
+
+.date-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+
