@@ -11,15 +11,6 @@ SQLALCHEMY_TRACK_MODIFICATIONS
 )
 
 
-# ★ 추가
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-
-
-db = SQLAlchemy()
-migrate = Migrate()
-
-
 # blueprints
 from calendark import bp_calendar
 from db_management import bp_db_management
@@ -41,9 +32,7 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = SQLALCHEMY_TRACK_MODIFICATIONS
 
 
-    # 확장 초기화
-    db.init_app(app)
-    migrate.init_app(app, db)
+    # 확장 프로그램 초기화
     JWTManager(app)
     CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 

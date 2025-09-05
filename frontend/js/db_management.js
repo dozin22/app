@@ -7,10 +7,9 @@ const POS_KEY   = "position";
 const TEAM_KEY  = "team";
 const EMAIL_KEY = "email";
 
-// 기존 엔드포인트들 + 추가로 /auth/me, /db-management/teams 사용
 const EP_DT_LIST = `${API_URL}/db-management/dt-experts`;
 const EP_TEAMS   = `${API_URL}/db-management/teams`;
-const EP_ME      = `${API_URL}/auth/me`;
+const EP_ME      = `${API_URL}/db-management/me`;
 
 function getToken(){ return localStorage.getItem(TOKEN_KEY); }
 function esc(v){ return String(v ?? "").replace(/[&<>"'`=\/]/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;","/":"&#x2F;","`":"&#x60;","=":"&#x3D;"}[s])); }
@@ -77,6 +76,9 @@ async function hydrateMeFromServer(){
   }catch(e){ console.error(e); }
 }
 
+
+
+// 상단 사용자 정보 표시
 function paintUserTop(){
   const { name, position, team, email } = State.me;
   setText("userName", name);
@@ -158,7 +160,7 @@ async function onToggleEditMe(){
     emailCell.innerHTML = `<input id="inpEmail" type="email" value="${esc(State.me.email)}" style="width:100%;">`;
 
     // 직책 select
-    const positions = ["사원","주임","대리","과장","차장","부장","팀장"];
+    const positions = ["팀장", "책임", "선임", "주임", "사원"];
     const posCell = document.getElementById("kvPosition");
     posCell.innerHTML = `<select id="inpPosition">${positions.map(p=>(
       `<option value="${esc(p)}"${p===State.me.position?" selected":""}>${esc(p)}</option>`
@@ -284,3 +286,5 @@ function renderDTList(rows){
     tbody.appendChild(tr);
   });
 }
+
+

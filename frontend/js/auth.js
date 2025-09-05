@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5001/api/auth";
+const API_URL = "http://localhost:5000/api/auth";
 
 // ───────────────────────────────────────────────
 // 공통 fetch 요청 헬퍼

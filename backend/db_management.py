@@ -1,66 +1,188 @@
 # backend/db_management.py
 # -*- coding: utf-8 -*-
-from flask import Blueprint, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy.orm import joinedload
+from functools import wraps
 
-# 🔽 ORM 모델과 세션 가져오기
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.orm import selectinload, joinedload  # joinedload는 /me_get 유지용
+# from sqlalchemy import select  # 현재 미사용이면 주석처리
+
 from orm_build import get_session, User, Team, Responsibility
 
 bp_db_management = Blueprint("db_management", __name__, url_prefix="/api/db-management")
 
-# ── DT 전문가 목록 조회 (팀장 전용) ──────────────────────────────
-@bp_db_management.get("/dt-experts")
+# ─────────────────────────────────────────────────────────────
+# 권한 가드: DT_Expert OR 팀장만 통과
+ALLOWED_RESP = {"DT_Expert"}   # 책임(Responsibility) 이름 표준
+ALLOWED_POS  = {"팀장"}        # 직위(Position) 표준
+
+def require_db_admin(fn):
+    """DT_Expert 또는 팀장만 접근 허용하는 데코레이터"""
+    @wraps(fn)
+    @jwt_required()
+    def wrapper(*args, **kwargs):
+        # 토큰 → user_id 획득
+        try:
+            uid = int(get_jwt_identity())
+        except (ValueError, TypeError):
+            return jsonify({"message": "잘못된 토큰 식별자"}), 401
+
+        # 권한 확인 (책임/직위)
+        with get_session() as s:
+            user = (
+                s.query(User)
+                .options(selectinload(User.responsibilities))
+                .get(uid)
+            )
+            if not user:
+                return jsonify({"message": "유저 없음"}), 404
+
+            pos_ok = (user.position or "").strip() in ALLOWED_POS
+            resp_ok = any((r.responsibility_name or "").strip() in ALLOWED_RESP
+                          for r in user.responsibilities)
+
+            if not (pos_ok or resp_ok):
+                return jsonify({"message": "접근 권한이 없습니다 (DT_Expert 또는 팀장 전용)"}), 403
+
+        # 권한 통과 시 실제 핸들러 실행
+        return fn(*args, **kwargs)
+    return wrapper
+
+# ─────────────────────────────────────────────────────────────
+# 내 정보 조회
+@bp_db_management.route("/me", methods=["GET"])
 @jwt_required()
-def list_dt_experts():
-    """ DT 전문가 목록 (팀장 전용) """
+def me_get():
+    try:
+        uid = int(get_jwt_identity())  # 전역 정책: identity는 user_id 문자열
+    except (ValueError, TypeError):
+        return jsonify({"message": "잘못된 토큰 식별자"}), 401
+
+    with get_session() as s:
+        user = (
+            s.query(User)
+            .options(joinedload(User.teams))  # 여기선 JOIN으로 한 방에
+            .filter_by(user_id=uid)
+            .first()
+        )
+        if not user:
+            return jsonify({"message": "유저를 찾을 수 없습니다"}), 404
+
+        team = user.teams[0] if user.teams else None
+
+        return jsonify({
+            "user_id": user.user_id,
+            "name": user.user_name,
+            "email": user.email,
+            "position": user.position,
+            "team_id": team.team_id if team else None,
+            "team": team.team_name if team else "팀 없음",
+        }), 200
+
+# ─────────────────────────────────────────────────────────────
+# 내 정보 수정
+@bp_db_management.route("/me", methods=["PUT"])
+@jwt_required()
+def me_update():
     try:
         uid = int(get_jwt_identity())
     except (ValueError, TypeError):
         return jsonify({"message": "잘못된 토큰 식별자"}), 401
 
-    # ## ORM 사용으로 변경
-    with get_session() as s:
-        # 요청을 보낸 사용자 정보 확인
-        current_user = s.get(User, uid)
-        if not current_user or (current_user.position or "").strip() != "팀장":
-            return jsonify({"message": "팀장 전용입니다."}), 403
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip()
+    position = (data.get("position") or "").strip()
+    team_id = data.get("team_id")
 
-        # 1안) 'DT_Expert' 책임을 가진 사용자 조회
-        # User 모델에서 시작하여 teams와 responsibilities를 JOIN합니다.
-        # options(joinedload(...))는 N+1 쿼리 문제를 방지하기 위해 사용합니다.
-        experts = s.query(User)\
-            .options(joinedload(User.teams))\
-            .join(User.responsibilities)\
-            .filter(Responsibility.responsibility_name == 'DT_Expert')\
-            .order_by(User.user_name)\
+    if not all([name, email, position]):
+        return jsonify({"message": "name/email/position은 필수입니다"}), 400
+
+    # team_id 안전 캐스팅
+    if team_id is not None:
+        try:
+            team_id = int(team_id)
+        except (ValueError, TypeError):
+            return jsonify({"message": "team_id 형식이 올바르지 않습니다"}), 400
+
+    with get_session() as s:
+        user = s.get(User, uid)
+        if not user:
+            return jsonify({"message": "유저 없음"}), 404
+
+        # 이메일 중복 체크 (자기 자신 제외)
+        if email != user.email:
+            exists = (
+                s.query(User)
+                .filter(User.email == email, User.user_id != uid)
+                .first()
+            )
+            if exists:
+                return jsonify({"message": "이미 사용 중인 이메일입니다"}), 409
+
+        # 기본 정보 업데이트
+        user.user_name = name
+        user.email = email
+        user.position = position
+
+        # 팀 매핑 업데이트 (옵션)
+        if team_id is not None:
+            new_team = s.get(Team, team_id)
+            if not new_team:
+                return jsonify({"message": "존재하지 않는 team_id"}), 400
+            user.teams = [new_team]  # 중간매핑 자동 정리
+
+        team = user.teams[0] if user.teams else None
+        return jsonify({
+            "user_id": user.user_id,
+            "name": user.user_name,
+            "email": user.email,
+            "position": user.position,
+            "team_id": team.team_id if team else None,
+            "team": team.team_name if team else "팀 없음",
+            "message": "저장되었습니다",
+        }), 200
+
+# ─────────────────────────────────────────────────────────────
+# DT 전문가 목록 조회 (기준정보) — DT_Expert OR 팀장만 접근
+@bp_db_management.get("/dt-experts")
+@require_db_admin
+def list_dt_experts():
+    with get_session() as s:
+        experts = (
+            s.query(User)
+            .options(selectinload(User.teams))  # N+1 방지
+            .filter(User.responsibilities.any(Responsibility.responsibility_name == "DT_Expert"))
+            .order_by(User.user_name)
             .all()
+        )
 
         data = []
         if experts:
-            for user in experts:
-                team = user.teams[0] if user.teams else None
+            for u in experts:
+                team = u.teams[0] if u.teams else None
                 data.append({
-                    "name": user.user_name,
+                    "name": u.user_name,
                     "team_name": team.team_name if team else "팀 없음",
                     "role": "DT_Expert",
-                    # ORM 모델에 updated_at이 없으므로 None으로 처리
                     "updated_at": None,
                     "level": None,
                     "cert": None,
                 })
         else:
-            # 2안) DT_Expert가 한 명도 없으면, 전체 사용자 목록을 기본값으로 보여줌
-            all_users = s.query(User)\
-                .options(joinedload(User.teams))\
-                .order_by(User.user_name)\
+            # DT_Expert 없으면 전체 사용자 목록
+            all_users = (
+                s.query(User)
+                .options(selectinload(User.teams))
+                .order_by(User.user_name)
                 .all()
-            for user in all_users:
-                team = user.teams[0] if user.teams else None
+            )
+            for u in all_users:
+                team = u.teams[0] if u.teams else None
                 data.append({
-                    "name": user.user_name,
+                    "name": u.user_name,
                     "team_name": team.team_name if team else "팀 없음",
-                    "role": "—", # 자격 미표시
+                    "role": "—",
                     "updated_at": None,
                     "level": None,
                     "cert": None,
@@ -68,18 +190,10 @@ def list_dt_experts():
 
         return jsonify(data), 200
 
-# ── 팀 목록 조회 ────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 @bp_db_management.get("/teams")
-@jwt_required()
 def list_teams():
-    # ## ORM 사용으로 변경
     with get_session() as s:
-        # Team 객체를 이름순으로 모두 조회
         teams = s.query(Team).order_by(Team.team_name).all()
-        
-        # 각 Team 객체를 dictionary로 변환
-        data = [
-            {"team_id": team.team_id, "team_name": team.team_name}
-            for team in teams
-        ]
+        data = [{"team_id": t.team_id, "team_name": t.team_name} for t in teams]
         return jsonify(data), 200
