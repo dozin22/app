@@ -1,0 +1,10 @@
+flask
+python-dotenv
+pyjwt
+flask-cors
+flask_jwt_extended
+requests
+pydantic
+sqlalchemy
+flask_sqlalchemy
+flask_migrate

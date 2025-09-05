@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>기준 정보 관리</title>
+  <!-- 공통 스타일: index와 동일 -->
+  <link rel="stylesheet" href="./css/style.css" />
+  <!-- 페이지 보조 스타일(최소) -->
+  <link rel="stylesheet" href="./css/db_management.css" />
+</head>
+<body>
+
+<div class="layout">
+  <!-- ✅ 사이드바: index.html과 동일한 구조/링크 -->
+  <aside class="sidebar">
+    <h2>메뉴</h2>
+    <ul>
+      <li><a href="index.html">메인 화면</a></li>
+      <li><a class="active" href="db_management.html">기준 정보 관리</a></li>
+      <li><a href="document_view.html">문서 조회</a></li>
+      <li><a href="#">제품 검사 결과 조회</a></li>
+    </ul>
+  </aside>
+
+  <!-- ✅ 메인 -->
+  <main class="main">
+    <header style="display:flex; align-items:center; justify-content:space-between;">
+      <h1>기준 정보 관리</h1>
+      <div class="userbox">
+        <div style="text-align:right; margin-right:10px;">
+          <div id="userName" style="font-weight:600;">—</div>
+          <div id="userSub" class="muted">—</div>
+        </div>
+        <button id="btnLogout" class="btn btn-ghost">로그아웃</button>
+      </div>
+    </header>
+
+    <!-- 🔹 좌측 라인형 탭 (index 톤에 맞춘 라이트 테마) -->
+    <section class="dbm-wrap">
+      <nav class="v-tabs">
+        <button class="v-tab active" data-tab="user" id="tabUser"><span>1</span> 유저 정보</button>
+        <button class="v-tab" data-tab="dt" id="tabDT"><span>2</span> DT 전문가 <em id="badgeDT" class="badge-lock">팀장 전용</em></button>
+        <button class="v-tab" data-tab="work" id="tabWork"><span>3</span> 업무 정보</button>
+        <button class="v-tab" data-tab="tree" id="tabTree"><span>4</span> 업무 트리</button>
+      </nav>
+
+      <section class="dbm-content">
+        <!-- 유저 정보 -->
+        <div class="panel" id="panel-user">
+          <div class="card">
+            <h3>내 계정</h3>
+            <div class="kv">
+              <div>이름</div><div id="kvName">—</div>
+              <div>팀</div><div id="kvTeam">—</div>
+              <div>이메일</div><div id="kvEmail">—</div>
+              <div>직책</div><div id="kvPosition">—</div>
+              <div class="actions" style="justify-content:flex-start;">
+                <button class="btn" id="btnEditMe">수정</button>
+                <button class="btn btn-ghost hidden" id="btnMeCancel">취소</button>
+              </div>
+            </div>
+
+            
+
+          </div>
+</div>
+
+        <!-- DT 전문가 (팀장 전용) -->
+        <div class="panel hidden" id="panel-dt">
+          <div id="dtGuard" class="guard hidden">
+            <div class="guard-box">
+              <strong>접근 제한</strong>
+              <div class="muted">이 기능은 <b>팀장</b>만 사용할 수 있어요.</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>DT 전문가 목록</h3>
+            <div class="table-wrap">
+              <table class="table" id="tblDTList">
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>팀</th>
+                    <th>역할</th>
+                    <th>자격/레벨</th>
+                    <th>최종 갱신</th>
+                  </tr>
+                </thead>
+                <tbody><!-- JS --></tbody>
+              </table>
+            </div>
+            <div class="actions">
+              <button class="btn" id="btnDTReload">목록 새로고침</button>
+              <button class="btn primary" id="btnDTAdd">신규 등록</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 업무 정보 (미구현 스텁) -->
+        <div class="panel hidden" id="panel-work">
+          <div class="card">
+            <h3>업무 정보</h3>
+            <p class="muted">아직 미구현이에요. 추후 연동 예정 뿅뿅.</p>
+          </div>
+        </div>
+
+        <!-- 업무 트리 (미구현 스텁) -->
+        <div class="panel hidden" id="panel-tree">
+          <div class="card">
+            <h3>업무 트리</h3>
+            <div class="tree-area">트리 뷰는 추후 연결될 예정이에요 :)</div>
+            <div class="actions">
+              <button class="btn" id="btnTreeReload">트리 불러오기</button>
+              <button class="btn primary" id="btnTreeNew">새 트리 생성</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </section>
+  </main>
+</div>
+
+<!-- ✅ 스크립트 (모듈) -->
+<script type="module" src="./js/db_management.js"></script>
+</body>
+</html>
