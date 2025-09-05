@@ -1,7 +1,0 @@
-flask
-python-dotenv
-pyjwt
-flask-cors
-flask_jwt_extended
-requests
-pydantic

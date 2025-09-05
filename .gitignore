@@ -1,1 +1,8 @@
 /아카이브.zip
+*.pyc
+__pycache__/
+venv/
+env/
+.DS_Store
+.idea/
+.vscode/
