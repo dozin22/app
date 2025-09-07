@@ -11,6 +11,10 @@ const EP_DT_LIST = `${API_URL}/db-management/dt-experts`;
 const EP_TEAMS   = `${API_URL}/db-management/teams`;
 const EP_ME      = `${API_URL}/db-management/me`;
 
+// 🔒 이메일 도메인 고정
+const FIXED_DOMAIN = '@nongshim.com';
+
+// ───────────────── 유틸 ─────────────────
 function getToken(){ return localStorage.getItem(TOKEN_KEY); }
 function esc(v){ return String(v ?? "").replace(/[&<>"'`=\/]/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;","/":"&#x2F;","`":"&#x60;","=":"&#x3D;"}[s])); }
 function setText(id, text){ const el=document.getElementById(id); if(el) el.textContent = text ?? "—"; }
@@ -25,6 +29,37 @@ function authFetch(url, opt = {}){
 }
 function toast(msg){ console.log("[알림]", msg); alert(msg); }
 
+// 이메일 조작 유틸
+function getLocalFromEmail(email){
+  const v = (email || '').trim();
+  if (!v) return '';
+  if (v.toLowerCase().endsWith(FIXED_DOMAIN.toLowerCase())) {
+    return v.slice(0, -FIXED_DOMAIN.length).replace(/@$/, '');
+  }
+  return v.includes('@') ? v.split('@')[0] : v;
+}
+function buildEmail(local){
+  const lp = String(local || '').replace(/\s+/g, '').replace(/@.*/g, '');
+  return lp ? `${lp}${FIXED_DOMAIN}` : '';
+}
+function setKvEmailView(local){
+  const cell = document.getElementById('kvEmail');
+  if (!cell) return;
+  cell.innerHTML = `<span id="kvEmailLocal">${esc(local || '')}</span><span class="email-domain">${FIXED_DOMAIN}</span>`;
+}
+function setKvEmailEdit(local){
+  const cell = document.getElementById('kvEmail');
+  if (!cell) return;
+  cell.innerHTML = `
+    <input id="inpEmailLocal" type="text" value="${esc(local || '')}" placeholder="아이디" style="width:100%;max-width:220px;">
+    <span class="email-domain">${FIXED_DOMAIN}</span>
+  `;
+  const input = document.getElementById('inpEmailLocal');
+  input.addEventListener('input', () => { input.value = (input.value || '').replace(/\s+/g, '').replace(/@.*/g, ''); });
+  input.addEventListener('keydown', (e) => { if (e.key === '@') e.preventDefault(); });
+}
+
+// ───────────────── 상태 ─────────────────
 const State = {
   me: {
     name: localStorage.getItem(NAME_KEY)  || "—",
@@ -76,8 +111,6 @@ async function hydrateMeFromServer(){
   }catch(e){ console.error(e); }
 }
 
-
-
 // 상단 사용자 정보 표시
 function paintUserTop(){
   const { name, position, team, email } = State.me;
@@ -85,7 +118,8 @@ function paintUserTop(){
   setText("userSub", team || "—");
   setText("kvName", name);           // 이름은 편집 불가
   setText("kvTeam", team || "—");
-  setText("kvEmail", email || "—");
+  // setText("kvEmail", email || "—");  // ← 기존
+  setKvEmailView(getLocalFromEmail(email)); // ← 로컬파트 + 고정 도메인
   setText("kvPosition", position);
   State.isLead = (position || "").trim() === "팀장";
 }
@@ -151,13 +185,11 @@ async function onToggleEditMe(){
       }
     };
 
-    // 팀 목록 로드
+    // 팀 목록 로드 (권한으로 막혀도 실패 허용 → 읽기전용 표시 유지)
     await loadTeams();
 
-    // 각 칸을 input/select로 교체 (이름은 그대로)
-    // 이메일 input
-    const emailCell = document.getElementById("kvEmail");
-    emailCell.innerHTML = `<input id="inpEmail" type="email" value="${esc(State.me.email)}" style="width:100%;">`;
+    // 이메일: 로컬파트만 편집
+    setKvEmailEdit(getLocalFromEmail(State.me.email));
 
     // 직책 select
     const positions = ["팀장", "책임", "선임", "주임", "사원"];
@@ -166,23 +198,36 @@ async function onToggleEditMe(){
       `<option value="${esc(p)}"${p===State.me.position?" selected":""}>${esc(p)}</option>`
     )).join("")}</select>`;
 
-    // 팀 select
+    // 팀: 권한에 따라 select 또는 읽기전용
     const teamCell = document.getElementById("kvTeam");
-    const opts = [`<option value="">— (미지정)</option>`].concat(
-      State.teams.map(t => `<option value="${t.team_id}"${Number(State.me.team_id)===Number(t.team_id)?" selected":""}>${esc(t.team_name)}</option>`)
-    ).join("");
-    teamCell.innerHTML = `<select id="inpTeam">${opts}</select>`;
+    if (Array.isArray(State.teams) && State.teams.length > 0) {
+      const opts = [`<option value="">— (미지정)</option>`].concat(
+        State.teams.map(t => `<option value="${t.team_id}"${Number(State.me.team_id)===Number(t.team_id)?" selected":""}>${esc(t.team_name)}</option>`)
+      ).join("");
+      teamCell.innerHTML = `<select id="inpTeam">${opts}</select>`;
+    } else {
+      // 팀 목록 접근 불가/없음 → 읽기전용 유지
+      teamCell.textContent = State.me.team || "—";
+    }
 
   }else{
     // --- 저장 ---
-    const email    = (document.getElementById("inpEmail").value || "").trim();
-    const position = (document.getElementById("inpPosition").value || "").trim();
-    const teamVal  = document.getElementById("inpTeam").value;
+    const localEl  = document.getElementById("inpEmailLocal");
+    const email    = localEl ? buildEmail(localEl.value) : (State.me.email || '').trim();
+    const posSel   = document.getElementById("inpPosition");
+    const teamSel  = document.getElementById("inpTeam");
+
+    const position = (posSel?.value || "").trim();
+    const teamVal  = teamSel ? teamSel.value : ""; // 읽기전용이면 teamSel 없음
     const team_id  = teamVal === "" ? null : Number(teamVal);
 
     if(!email || !position){
       return alert("이메일/직책은 필수입니다.");
     }
+    if (!email.endsWith(FIXED_DOMAIN)) {
+      return alert(`이메일은 ${FIXED_DOMAIN} 도메인만 허용됩니다.`);
+    }
+
     try{
       const res = await authFetch(EP_ME, {
         method: "PUT",
@@ -204,8 +249,8 @@ async function onToggleEditMe(){
       localStorage.setItem(POS_KEY,   data.position || "");
       localStorage.setItem(TEAM_KEY,  data.team || "");
 
-      // 다시 텍스트로 표시
-      document.getElementById("kvEmail").textContent    = data.email || "—";
+      // 다시 텍스트로 표시 (이메일은 로컬+도메인)
+      setKvEmailView(getLocalFromEmail(data.email));
       document.getElementById("kvPosition").textContent = data.position || "—";
       document.getElementById("kvTeam").textContent     = data.team || "—";
 
@@ -238,7 +283,7 @@ function onCancelEditMe(){
   State.editBackup = null;
 }
 
-// 팀 목록
+// 팀 목록 (권한 없으면 빈 배열로 두고 읽기전용 처리)
 async function loadTeams(){
   try{
     const res = await authFetch(EP_TEAMS);
@@ -246,7 +291,8 @@ async function loadTeams(){
     if(!res.ok) throw new Error(data?.message || "팀 목록 로드 실패");
     State.teams = Array.isArray(data) ? data : [];
   }catch(e){
-    console.error(e); State.teams = [];
+    console.warn("[teams] 로드 실패(권한/네트워크 등):", e?.message || e);
+    State.teams = [];
   }
 }
 
@@ -286,5 +332,3 @@ function renderDTList(rows){
     tbody.appendChild(tr);
   });
 }
-
-

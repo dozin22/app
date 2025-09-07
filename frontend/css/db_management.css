@@ -54,3 +54,29 @@
   .v-tabs { flex-direction:row; overflow:auto; }
   .v-tab { white-space:nowrap; }
 }
+
+/* === 이메일 인라인 편집 전용 오버라이드 (맨 아래 추가) === */
+
+/* 이메일 셀 레이아웃 살짝 정리 */
+#kvEmail {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 로컬파트 입력칸 폭 줄이기 (inline 스타일 이겨야 해서 !important) */
+#kvEmail #inpEmailLocal {
+  width: 100px !important;
+  max-width: 160px !important;
+  box-sizing: border-box;
+  padding: 1px  3px;
+}
+
+/* 도메인은 연회색 + 편집 불가 느낌 */
+#kvEmail .email-domain {
+  color: #9aa2b1;        /* 연회색 톤 */
+  opacity: 0.9;
+  font-weight: 600;
+  cursor: default;       /* 마우스 올려도 편집 아님 느낌 */
+}
+
