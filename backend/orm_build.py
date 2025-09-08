@@ -72,6 +72,9 @@ class Team(Base):
     workflows: Mapped[list["Workflow"]] = relationship(
         back_populates="assigned_team"
     )
+    task_templates: Mapped[list["TaskTemplate"]] = relationship(
+        back_populates="teams", secondary="task_template_team_mappings"
+    )
 
 class Responsibility(Base):
     __tablename__ = "responsibilities"
@@ -90,6 +93,9 @@ class Responsibility(Base):
     required_by_task_templates: Mapped[list["TaskTemplate"]] = relationship(
         back_populates="required_responsibility"
     )
+    # required_by_task_templates: Mapped[list["TaskTemplate"]] = relationship(
+    #     back_populates="required_responsibility"
+    # )
 
 class User(Base):
     __tablename__ = "users"
@@ -131,10 +137,13 @@ class TaskTemplate(Base):
         ForeignKey("responsibilities.responsibility_id"), nullable=True
     )
 
+    teams: Mapped[list["Team"]] = relationship(
+        back_populates="task_templates", secondary="task_template_team_mappings"
+    )
     required_responsibility: Mapped[Optional["Responsibility"]] = relationship(
         back_populates="required_by_task_templates"
-    ) # :contentReference[oaicite:1]{source_path="/Users/khw/Desktop/app/backend/orm_build.py" start_line=156 end_line=160}
-    workflow_definitions: Mapped[list["WorkflowTemplateDefinition"]] = relationship( # :contentReference[oaicite:1]{source_path="/Users/khw/Desktop/app/backend/orm_build.py" start_line=156 end_line=160}
+    )
+    workflow_definitions: Mapped[list["WorkflowTemplateDefinition"]] = relationship(
         back_populates="task_template",
         foreign_keys="WorkflowTemplateDefinition.task_template_id",   # ← 이 줄 추가!
         cascade="all, delete-orphan"
@@ -144,6 +153,11 @@ class TaskTemplate(Base):
         back_populates="depends_on"
     )
     tasks: Mapped[list["Task"]] = relationship(back_populates="task_template")
+
+class TaskTemplateTeamMapping(Base):
+    __tablename__ = "task_template_team_mappings"
+    task_template_id: Mapped[int] = mapped_column(ForeignKey("task_templates.task_template_id", ondelete="CASCADE"), primary_key=True)
+    team_id: Mapped[int] = mapped_column(ForeignKey("teams.team_id", ondelete="CASCADE"), primary_key=True)
 
 class RequestTemplate(Base):
     __tablename__ = "request_templates"

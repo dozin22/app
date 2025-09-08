@@ -73,10 +73,56 @@
 }
 
 /* 도메인은 연회색 + 편집 불가 느낌 */
-#kvEmail .email-domain {
+/* 평소에는 일반 텍스트 색상 */
+.email-domain {
+  color: inherit;
+}
+
+/* 수정 모드에서만 회색으로 */
+#kvEmail.editing-mode .email-domain {
   color: #9aa2b1;        /* 연회색 톤 */
   opacity: 0.9;
   font-weight: 600;
   cursor: default;       /* 마우스 올려도 편집 아님 느낌 */
 }
 
+/* === 업무 정보 패널 === */
+.work-editor-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  height: 60vh;
+}
+
+.work-list-pane {
+  background: #fff;
+  border: 1px solid #e3e6ef;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.list-header h4 { margin: 0; }
+
+.task-list { overflow-y: auto; }
+.task-list-item {
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.task-list-item:hover { background-color: #f7f9ff; }
+.task-list-item.active { background-color: #eef3ff; border-color: #d3ddff; font-weight: 600; }
+
+.work-form-pane .form-group { display: flex; flex-direction: column; margin-bottom: 12px; }
+.work-form-pane .form-group label { margin-bottom: 4px; color: #556; font-size: 14px; }
+.work-form-pane .form-group input, .work-form-pane .form-group textarea, .work-form-pane .form-group select { width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
+.work-form-pane .placeholder-text { display: grid; place-items: center; height: 100%; color: #889; }
+.work-form-pane .actions { margin-top: 20px; }

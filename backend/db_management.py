@@ -7,7 +7,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import selectinload, joinedload  # joinedload는 /me_get 유지용
 # from sqlalchemy import select  # 현재 미사용이면 주석처리
 
-from orm_build import get_session, User, Team, Responsibility
+from orm_build import get_session, User, Team, Responsibility, TaskTemplate
 
 bp_db_management = Blueprint("db_management", __name__, url_prefix="/api/db-management")
 
@@ -29,6 +29,18 @@ def _serialize_user(user: User) -> dict[str, Any]:
         "team": user.team.team_name if user.team else "팀 없음",
     }
 
+def require_team_lead(fn):
+    """팀장만 접근을 허용하는 데코레이터"""
+    @wraps(fn)
+    @jwt_required()
+    def wrapper(*args, **kwargs):
+        uid = int(get_jwt_identity())
+        with get_session() as s:
+            user = s.get(User, uid)
+            if not user or user.position != "팀장":
+                return jsonify({"message": "팀장만 접근할 수 있는 기능입니다."}), 403
+        return fn(user, *args, **kwargs) # user 객체를 다음 함수로 전달
+    return wrapper
 
 
 def require_db_admin(fn):
@@ -143,42 +155,112 @@ def me_update():
         return jsonify(response_data), 200
 
 # ─────────────────────────────────────────────────────────────
-# DT 전문가 목록 조회 (기준정보) — DT_Expert OR 팀장만 접근
-@bp_db_management.get("/dt-experts")
-@require_db_admin
-def list_dt_experts():
+# DT 전문가 선임 (팀장 전용)
+@bp_db_management.get("/team-members")
+@require_team_lead
+def get_team_members(current_user: User):
+    """현재 로그인한 팀장의 팀원 목록과 DT 전문가 여부를 반환"""
     with get_session() as s:
-        query = (
-            s.query(User)
-            .options(selectinload(User.team))  # N+1 방지
-            .order_by(User.user_name)
-        )
-        
-        experts = query.filter(User.responsibilities.any(Responsibility.responsibility_name == "DT_Expert")).all()
-        
-        users_to_render = experts
-        is_expert_list = True
-        if not experts:
-            users_to_render = query.all()
-            is_expert_list = False
+        # current_user가 detached 상태일 수 있으므로 세션에 다시 attach
+        s.add(current_user)
+        if not current_user.team_id:
+            return jsonify([]), 200
 
+        team_members = s.query(User).filter(User.team_id == current_user.team_id).options(selectinload(User.responsibilities)).order_by(User.user_name).all()
+        
         data = []
-        for u in users_to_render:
+        for member in team_members:
+            is_dt_expert = any(r.responsibility_name == "DT_Expert" for r in member.responsibilities)
             data.append({
-                "name": u.user_name,
-                "team_name": u.team.team_name if u.team else "팀 없음",
-                "role": "DT_Expert" if is_expert_list else "—",
-                "updated_at": None,
-                "level": None,
-                "cert": None,
+                "user_id": member.user_id,
+                "name": member.user_name,
+                "position": member.position,
+                "email": member.email,
+                "is_dt_expert": is_dt_expert
             })
-
         return jsonify(data), 200
+
+@bp_db_management.put("/team-members/dt-expert-status")
+@require_team_lead
+def update_dt_expert_status(current_user: User):
+    """팀원들의 DT 전문가 역할을 업데이트"""
+    updates = request.get_json().get("updates", [])
+    with get_session() as s:
+        s.add(current_user)
+        dt_expert_responsibility = s.query(Responsibility).filter_by(team_id=current_user.team_id, responsibility_name="DT_Expert").first()
+        if not dt_expert_responsibility:
+            return jsonify({"message": "해당 팀의 DT_Expert 역할이 정의되지 않았습니다."}), 400
+
+        for update in updates:
+            user_id = update.get("user_id")
+            is_dt_expert = update.get("is_dt_expert")
+            
+            member = s.query(User).filter_by(user_id=user_id, team_id=current_user.team_id).options(selectinload(User.responsibilities)).first()
+            if not member: continue
+
+            has_resp = any(r.responsibility_id == dt_expert_responsibility.responsibility_id for r in member.responsibilities)
+
+            if is_dt_expert and not has_resp:
+                member.responsibilities.append(dt_expert_responsibility)
+            elif not is_dt_expert and has_resp:
+                member.responsibilities.remove(dt_expert_responsibility)
+
+    return jsonify({"message": "DT 전문가 정보가 업데이트되었습니다."}), 200
 
 # ─────────────────────────────────────────────────────────────
-@bp_db_management.get("/teams")
-def list_teams():
+# 업무 정보 관리 (팀장 전용)
+@bp_db_management.get("/task-templates")
+@require_team_lead
+def get_task_templates(current_user: User):
+    """팀장의 팀에 속한 TaskTemplate 목록과 Responsibility 목록을 반환"""
     with get_session() as s:
-        teams = s.query(Team).order_by(Team.team_name).all()
-        data = [{"team_id": t.team_id, "team_name": t.team_name} for t in teams]
-        return jsonify(data), 200
+        s.add(current_user)
+        if not current_user.team_id:
+            return jsonify({"task_templates": [], "responsibilities": []})
+
+        # 팀의 Responsibility 목록 조회
+        responsibilities = s.query(Responsibility).filter_by(team_id=current_user.team_id).all()
+        resp_ids = [r.responsibility_id for r in responsibilities]
+
+        # 해당 Responsibility에 연결된 TaskTemplate 목록 조회
+        task_templates = s.query(TaskTemplate).filter(TaskTemplate.required_responsibility_id.in_(resp_ids)).order_by(TaskTemplate.template_name).all()
+
+        return jsonify({
+            "task_templates": [
+                {
+                    "task_template_id": tt.task_template_id,
+                    "template_name": tt.template_name,
+                    "task_type": tt.task_type,
+                    "category": tt.category,
+                    "description": tt.description,
+                    "required_responsibility_id": tt.required_responsibility_id,
+                } for tt in task_templates
+            ],
+            "responsibilities": [
+                {"responsibility_id": r.responsibility_id, "responsibility_name": r.responsibility_name} for r in responsibilities
+            ]
+        })
+
+@bp_db_management.put("/task-templates/<int:template_id>")
+@require_team_lead
+def update_task_template(current_user: User, template_id: int):
+    """TaskTemplate 정보를 업데이트"""
+    data = request.get_json()
+    with get_session() as s:
+        s.add(current_user)
+        tt = s.get(TaskTemplate, template_id)
+        if not tt:
+            return jsonify({"message": "템플릿을 찾을 수 없습니다."}), 404
+
+        # 해당 템플릿이 팀장의 팀 소속인지 확인 (보안)
+        resp = s.get(Responsibility, tt.required_responsibility_id)
+        if not resp or resp.team_id != current_user.team_id:
+            return jsonify({"message": "권한이 없습니다."}), 403
+
+        tt.template_name = data.get("template_name", tt.template_name)
+        tt.task_type = data.get("task_type", tt.task_type)
+        tt.category = data.get("category", tt.category)
+        tt.description = data.get("description", tt.description)
+        tt.required_responsibility_id = data.get("required_responsibility_id", tt.required_responsibility_id)
+
+        return jsonify({"message": "업무 템플릿이 업데이트되었습니다."})

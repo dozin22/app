@@ -7,9 +7,10 @@ const POS_KEY   = "position";
 const TEAM_KEY  = "team";
 const EMAIL_KEY = "email";
 
-const EP_DT_LIST = `${API_URL}/db-management/dt-experts`;
-const EP_TEAMS   = `${API_URL}/db-management/teams`;
-const EP_ME      = `${API_URL}/db-management/me`;
+const EP_TEAM_MEMBERS = `${API_URL}/db-management/team-members`;
+const EP_TASK_TEMPLATES = `${API_URL}/db-management/task-templates`;
+const EP_TEAMS        = `${API_URL}/db-management/teams`;
+const EP_ME           = `${API_URL}/db-management/me`;
 
 // 🔒 이메일 도메인 고정
 const FIXED_DOMAIN = '@nongshim.com';
@@ -50,7 +51,7 @@ function setKvEmailView(local){
 function setKvEmailEdit(local){
   const cell = document.getElementById('kvEmail');
   if (!cell) return;
-  cell.innerHTML = `
+  cell.innerHTML = ` 
     <input id="inpEmailLocal" type="text" value="${esc(local || '')}" placeholder="아이디" style="width:100%;max-width:220px;">
     <span class="email-domain">${FIXED_DOMAIN}</span>
   `;
@@ -69,7 +70,9 @@ const State = {
     team_id: null,
   },
   isLead: false,
-  dtList: [],
+  teamMembers: [],
+  taskTemplates: [],
+  teamResponsibilities: [],
   teams: [],
   editing: false,
   editBackup: null, // { email, position, team, team_id, htmls:{kvEmail,kvPosition,kvTeam} }
@@ -82,7 +85,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   paintUserTop();
   bindTabs();
   bindActions();
-  applyPositionGuard?.(); // 기존에 있으면 사용
+  applyRoleBasedUI();
   showPanel("user");
 });
 
@@ -124,14 +127,34 @@ function paintUserTop(){
   State.isLead = (position || "").trim() === "팀장";
 }
 
-// ===== 탭 (기존) =====
+// ===== UI 제어 및 탭 =====
+function applyRoleBasedUI() {
+  const dtTab = document.getElementById('tabDT');
+  if (dtTab && !State.isLead) {
+    dtTab.style.display = 'none'; // 팀장이 아니면 탭 숨김
+  }
+
+  // 역할에 따라 UI가 변경된 후, 보이는 탭들의 번호를 다시 매김
+  let visibleTabIndex = 1;
+  document.querySelectorAll('.v-tabs .v-tab').forEach(tab => {
+    if (tab.style.display !== 'none') {
+      tab.querySelector('span').textContent = visibleTabIndex++;
+    }
+  });
+}
+
+
+
+
 function bindTabs(){
   document.querySelectorAll(".v-tab").forEach(btn => {
     btn.addEventListener("click", async () => {
       const tab = btn.getAttribute("data-tab");
-      if(tab === "dt" && !State.isLead){ showPanel("dt"); showDTGuard(true); markActive(btn); return; }
       showPanel(tab); markActive(btn);
-      if(tab === "dt" && State.isLead && State.dtList.length === 0){ await loadDTList(); }
+      if(tab === "dt" && State.isLead && State.teamMembers.length === 0){ await loadTeamMembers(); }
+      if(tab === "work" && State.isLead && State.taskTemplates.length === 0) {
+        await loadTaskTemplates();
+      }
     });
   });
 }
@@ -144,7 +167,6 @@ function showPanel(key){
   Object.values(ids).forEach(id => document.getElementById(id).classList.add("hidden"));
   document.getElementById(ids[key]).classList.remove("hidden");
 }
-function showDTGuard(show){ document.getElementById("dtGuard")?.classList.toggle("hidden", !show); }
 
 // ===== 버튼 바인딩 =====
 function bindActions(){
@@ -155,11 +177,11 @@ function bindActions(){
   document.getElementById("btnEditMe")?.addEventListener("click", onToggleEditMe);
   document.getElementById("btnMeCancel")?.addEventListener("click", onCancelEditMe);
 
-  document.getElementById("btnDTReload")?.addEventListener("click", loadDTList);
-  document.getElementById("btnDTAdd")?.addEventListener("click", () => {
-    if(!State.isLead){ return alert("팀장만 등록할 수 있어요!"); }
-    alert("신규 등록 폼은 추후 연결 예정! (미구현)");
-  });
+  document.getElementById("btnDTReload")?.addEventListener("click", loadTeamMembers);
+  document.getElementById("btnDTSave")?.addEventListener("click", onSaveDTExperts);
+
+  // 업무 정보 패널 버튼
+  document.getElementById("btnSaveTaskTemplate")?.addEventListener("click", onSaveTaskTemplate);
 }
 
 // ===== 인라인 편집 =====
@@ -171,6 +193,7 @@ async function onToggleEditMe(){
     State.editing = true;
     btn.textContent = "저장";
     cancelBtn.classList.remove("hidden");
+    document.getElementById('kvEmail').classList.add('editing-mode');
 
     // 백업
     State.editBackup = {
@@ -259,6 +282,7 @@ async function onToggleEditMe(){
       State.editing = false;
       btn.textContent = "수정";
       cancelBtn.classList.add("hidden");
+      document.getElementById('kvEmail')?.classList.remove('editing-mode');
     }catch(e){
       console.error(e);
       alert(e.message);
@@ -281,6 +305,7 @@ function onCancelEditMe(){
   btn.textContent = "수정";
   cancelBtn.classList.add("hidden");
   State.editBackup = null;
+  document.getElementById('kvEmail')?.classList.remove('editing-mode');
 }
 
 // 팀 목록 (권한 없으면 빈 배열로 두고 읽기전용 처리)
@@ -296,39 +321,159 @@ async function loadTeams(){
   }
 }
 
-// ===== (기존) DT 목록 =====
-async function loadDTList(){
-  if(!State.isLead){ renderDTList([]); showDTGuard(true); return; }
+// ===== DT 전문가 선임 =====
+async function loadTeamMembers(){
+  if(!State.isLead) return;
   try{
-    const res = await authFetch(EP_DT_LIST);
+    const res = await authFetch(EP_TEAM_MEMBERS);
     const data = await res.json().catch(() => ({}));
-    if(!res.ok) throw new Error(data?.message || "DT 목록 로드 실패");
-    const rows = Array.isArray(data) ? data : (data.rows || []);
-    State.dtList = rows; renderDTList(State.dtList); showDTGuard(false);
+    if(!res.ok) throw new Error(data?.message || "팀원 목록 로드 실패");
+    State.teamMembers = Array.isArray(data) ? data : [];
+    renderTeamMembers(State.teamMembers);
   }catch(err){
     console.error(err);
-    renderDTList([]); showDTGuard(false);
-    toast("DT 전문가 API 응답이 없어 빈 목록으로 표시합니다(미구현 가능).");
+    renderTeamMembers([]);
+    toast(err.message);
   }
 }
-function renderDTList(rows){
+
+function renderTeamMembers(members){
   const tbody = document.querySelector("#tblDTList tbody");
+  const title = document.getElementById("dtListTitle");
   if(!tbody) return;
+
+  if (title) {
+    title.textContent = `${esc(State.me.team || '팀')} DT 전문가 선임`;
+  }
+
   tbody.innerHTML = "";
-  if(!rows || rows.length === 0){
+  if(!members || members.length === 0){
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = 5; td.textContent = "데이터가 없습니다."; td.style.color = "#889";
+    td.colSpan = 4; td.textContent = "팀원이 없습니다."; td.style.color = "#889";
     tr.appendChild(td); tbody.appendChild(tr); return;
   }
-  rows.forEach(r => {
+  members.forEach(m => {
     const tr = document.createElement("tr");
+    tr.dataset.userId = m.user_id;
     tr.innerHTML = `
-      <td>${esc(r.name ?? r.user_name ?? "—")}</td>
-      <td>${esc(r.team_name ?? r.team ?? "—")}</td>
-      <td>${esc(r.role ?? r.responsibility_name ?? "—")}</td>
-      <td>${esc(r.level ?? r.cert ?? "—")}</td>
-      <td>${esc(r.updated_at ?? r.updatedAt ?? "—")}</td>`;
+      <td>${esc(m.name)}</td>
+      <td>${esc(m.position)}</td>
+      <td>${esc(m.email)}</td>
+      <td>
+        <select class="dt-expert-select">
+          <option value="false"${!m.is_dt_expert ? ' selected' : ''}>아니오</option>
+          <option value="true"${m.is_dt_expert ? ' selected' : ''}>예</option>
+        </select>
+      </td>`;
     tbody.appendChild(tr);
   });
+}
+
+async function onSaveDTExperts() {
+  const payload = [];
+  document.querySelectorAll('#tblDTList tbody tr').forEach(tr => {
+    const userId = tr.dataset.userId;
+    const isExpert = tr.querySelector('.dt-expert-select').value === 'true';
+    if (userId) {
+      payload.push({ user_id: Number(userId), is_dt_expert: isExpert });
+    }
+  });
+
+  try {
+    const res = await authFetch(`${EP_TEAM_MEMBERS}/dt-expert-status`, {
+      method: 'PUT',
+      body: JSON.stringify({ updates: payload })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.message || '저장 중 오류 발생');
+    toast('DT 전문가 정보가 저장되었습니다.');
+    await loadTeamMembers(); // 저장 후 목록 새로고침
+  } catch (e) {
+    console.error(e);
+    toast(e.message);
+  }
+}
+
+// ===== 업무 정보 관리 =====
+async function loadTaskTemplates() {
+    if (!State.isLead) return;
+    try {
+        const res = await authFetch(EP_TASK_TEMPLATES);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "업무 템플릿 로드 실패");
+        State.taskTemplates = data.task_templates || [];
+        State.teamResponsibilities = data.responsibilities || [];
+        renderTaskTemplateList();
+        populateResponsibilityDropdown();
+    } catch (e) {
+        toast(e.message);
+        console.error(e);
+    }
+}
+
+function renderTaskTemplateList() {
+    const listEl = document.getElementById("taskList");
+    if (!listEl) return;
+    listEl.innerHTML = State.taskTemplates.map(t => `
+        <div class="task-list-item" data-id="${t.task_template_id}">
+            ${esc(t.template_name)}
+        </div>
+    `).join('');
+
+    listEl.querySelectorAll('.task-list-item').forEach(item => {
+        item.addEventListener('click', () => {
+            listEl.querySelectorAll('.task-list-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            const templateId = Number(item.dataset.id);
+            const template = State.taskTemplates.find(t => t.task_template_id === templateId);
+            showTaskTemplateForm(template);
+        });
+    });
+}
+
+function populateResponsibilityDropdown() {
+    const selectEl = document.getElementById("selTaskResp");
+    if (!selectEl) return;
+    selectEl.innerHTML = State.teamResponsibilities.map(r =>
+        `<option value="${r.responsibility_id}">${esc(r.responsibility_name)}</option>`
+    ).join('');
+}
+
+function showTaskTemplateForm(template) {
+    document.getElementById("taskForm").classList.remove("hidden");
+    document.getElementById("taskFormPlaceholder").classList.add("hidden");
+
+    document.getElementById("inpTaskId").value = template.task_template_id;
+    document.getElementById("inpTaskName").value = template.template_name;
+    document.getElementById("inpTaskType").value = template.task_type;
+    document.getElementById("inpTaskCategory").value = template.category || '';
+    document.getElementById("inpTaskDesc").value = template.description || '';
+    document.getElementById("selTaskResp").value = template.required_responsibility_id;
+}
+
+async function onSaveTaskTemplate() {
+    const templateId = document.getElementById("inpTaskId").value;
+    if (!templateId) {
+        return toast("먼저 템플릿을 선택하세요.");
+    }
+
+    const payload = {
+        template_name: document.getElementById("inpTaskName").value,
+        task_type: document.getElementById("inpTaskType").value,
+        category: document.getElementById("inpTaskCategory").value,
+        description: document.getElementById("inpTaskDesc").value,
+        required_responsibility_id: Number(document.getElementById("selTaskResp").value),
+    };
+
+    try {
+        const res = await authFetch(`${EP_TASK_TEMPLATES}/${templateId}`, { method: 'PUT', body: JSON.stringify(payload) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "저장 실패");
+        toast(data.message);
+        await loadTaskTemplates(); // 목록 새로고침
+    } catch (e) {
+        toast(e.message);
+        console.error(e);
+    }
 }

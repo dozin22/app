@@ -40,7 +40,7 @@
     <section class="dbm-wrap">
       <nav class="v-tabs">
         <button class="v-tab active" data-tab="user" id="tabUser"><span>1</span> 유저 정보</button>
-        <button class="v-tab" data-tab="dt" id="tabDT"><span>2</span> DT 전문가 <em id="badgeDT" class="badge-lock">팀장 전용</em></button>
+        <button class="v-tab" data-tab="dt" id="tabDT"><span>2</span> DT 전문가 선임</button>
         <button class="v-tab" data-tab="work" id="tabWork"><span>3</span> 업무 정보</button>
         <button class="v-tab" data-tab="tree" id="tabTree"><span>4</span> 업무 트리</button>
       </nav>
@@ -79,34 +79,56 @@
           </div>
 
           <div class="card">
-            <h3>DT 전문가 목록</h3>
+            <h3 id="dtListTitle">DT 전문가 목록</h3>
             <div class="table-wrap">
               <table class="table" id="tblDTList">
                 <thead>
                   <tr>
                     <th>이름</th>
-                    <th>팀</th>
-                    <th>역할</th>
-                    <th>자격/레벨</th>
-                    <th>최종 갱신</th>
+                    <th>직위</th>
+                    <th>이메일</th>
+                    <th>DT 전문가 여부</th>
                   </tr>
                 </thead>
                 <tbody><!-- JS --></tbody>
               </table>
             </div>
             <div class="actions">
-              <button class="btn" id="btnDTReload">목록 새로고침</button>
-              <button class="btn primary" id="btnDTAdd">신규 등록</button>
+              <button class="btn" id="btnDTReload">새로고침</button>
+              <button class="btn primary" id="btnDTSave">저장</button>
             </div>
           </div>
         </div>
 
         <!-- 업무 정보 (미구현 스텁) -->
         <div class="panel hidden" id="panel-work">
-          <div class="card">
-            <h3>업무 정보</h3>
-            <p class="muted">아직 미구현이에요. 추후 연동 예정 뿅뿅.</p>
-          </div>
+            <div class="work-editor-layout">
+                <div class="work-list-pane">
+                    <div class="list-header">
+                        <h4>업무 템플릿 목록</h4>
+                        <button class="btn btn-ghost" id="btnNewTaskTemplate">+</button>
+                    </div>
+                    <div id="taskList" class="task-list">
+                        <!-- JS로 렌더링 -->
+                    </div>
+                </div>
+                <div class="work-form-pane card">
+                    <h3 id="taskFormTitle">업무 템플릿 편집</h3>
+                    <div id="taskForm" class="hidden">
+                        <input type="hidden" id="inpTaskId">
+                        <div class="form-group"><label for="inpTaskName">템플릿 이름</label><input type="text" id="inpTaskName"></div>
+                        <div class="form-group"><label for="inpTaskType">업무 타입</label><input type="text" id="inpTaskType" placeholder="예: Analysis, Info_CRUD"></div>
+                        <div class="form-group"><label for="inpTaskCategory">카테고리</label><input type="text" id="inpTaskCategory" placeholder="예: HACCP, Quality"></div>
+                        <div class="form-group"><label for="inpTaskDesc">설명</label><textarea id="inpTaskDesc" rows="4"></textarea></div>
+                        <div class="form-group"><label for="selTaskResp">담당 책임</label><select id="selTaskResp"></select></div>
+                        <div class="actions">
+                            <button class="btn" id="btnDeleteTaskTemplate">삭제</button>
+                            <button class="btn primary" id="btnSaveTaskTemplate">저장</button>
+                        </div>
+                    </div>
+                    <div id="taskFormPlaceholder" class="placeholder-text">목록에서 항목을 선택하세요.</div>
+                </div>
+            </div>
         </div>
 
         <!-- 업무 트리 (미구현 스텁) -->

@@ -120,25 +120,36 @@ def seed():
 
         resp1 = s.query(Responsibility).filter_by(responsibility_name='분석실 관리', team_id=qc_team.team_id).first()
         resp2 = s.query(Responsibility).filter_by(responsibility_name='수출 제품 품질 관리', team_id=qc_team.team_id).first()
-        if resp1: u.responsibilities.append(resp1)
-        if resp2: u.responsibilities.append(resp2)
+        
+        # 사용자가 이미 책임을 가지고 있는지 확인 후 추가
+        if resp1 and resp1 not in u.responsibilities:
+            u.responsibilities.append(resp1)
+        if resp2 and resp2 not in u.responsibilities:
+            u.responsibilities.append(resp2)
 
-        # 7) task_templates (예제 ID를 원본 시더와 동일하게 맞춤)  # :contentReference[oaicite:3]{index=3}
-        haccp = s.query(Responsibility).filter_by(responsibility_name='HACCP 담당', team_id=1).first()
-        quality = s.query(Responsibility).filter_by(responsibility_name='분석실 관리', team_id=1).first()
+        # 6) TaskTemplate 생성에 필요한 Responsibility 객체 미리 조회
+        haccp_resp = s.query(Responsibility).filter_by(responsibility_name='HACCP 담당', team_id=qc_team.team_id).first()
+        quality_resp = s.query(Responsibility).filter_by(responsibility_name='분석실 관리', team_id=qc_team.team_id).first()
 
-        upsert_task_template(
+        # 7) task_templates 생성
+        tt1 = upsert_task_template(
             s, 101, '원자재 위해요소 기준 추가', 'Info_CRUD', 'HACCP',
-            '원자재 위해요소의 기준을 추가합니다.', haccp.responsibility_id if haccp else None
+            '원자재 위해요소의 기준을 추가합니다.',
+            haccp_resp.responsibility_id if haccp_resp else None
         )
-        upsert_task_template(
+        tt2 = upsert_task_template(
             s, 102, '원자재 위해요소 분석', 'Analysis', 'HACCP',
-            '원자재 위해요소 기준에 따라 분석을 실시하고 결과를 기록합니다.', haccp.responsibility_id if haccp else None
+            '원자재 위해요소 기준에 따라 분석을 실시하고 결과를 기록합니다.',
+            haccp_resp.responsibility_id if haccp_resp else None
         )
-        upsert_task_template(
+        tt3 = upsert_task_template(
             s, 201, '제품 자가품질검사', 'Analysis', 'Quality',
-            '완제품의 자가품질 분석을 수행합니다.', quality.responsibility_id if quality else None
+            '완제품의 자가품질 분석을 수행합니다.',
+            quality_resp.responsibility_id if quality_resp else None
         )
+
+        # 7-1) 생성된 모든 TaskTemplate을 품질관리팀에 할당
+        qc_team.task_templates.extend([tt1, tt2, tt3])
 
         # 8) workflow_templates
         wt = upsert_workflow_template(
