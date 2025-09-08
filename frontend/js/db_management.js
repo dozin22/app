@@ -8,6 +8,7 @@ import {
 import { initUserPanel, loadTeamMembers } from './user_panel.js';
 import { initWorkflowPanel, loadTaskTemplates } from './workflow_panel.js';
 
+
 // ===== 어플리케이션 부팅 =====
 window.addEventListener("DOMContentLoaded", async () => {
   guardAuth();

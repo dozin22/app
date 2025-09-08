@@ -16,6 +16,7 @@ export function initUserPanel() {
 
   // ✅ 공통 바인더: 클릭 기본동작/버블 차단
   const bind = (id, handler) => {
+    
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('click', (e) => {
@@ -157,6 +158,7 @@ async function loadTeams(){
 
 // ===== DT 전문가 선임 =====
 export async function loadTeamMembers(){
+  
   if(!State.isLead) return;
   try{
     const res = await authFetch(EP_TEAM_MEMBERS);
@@ -172,6 +174,7 @@ export async function loadTeamMembers(){
 }
 
 function renderTeamMembers(members){
+  
   const tbody = document.querySelector("#tblDTList tbody");
   const title = document.getElementById("dtListTitle");
   if(!tbody) return;
@@ -202,6 +205,7 @@ function renderTeamMembers(members){
   });
 }
 async function onSaveDTExperts() {
+  
   const btn = document.getElementById("btnDTSave");
   btn && (btn.disabled = true);
 
@@ -212,23 +216,20 @@ async function onSaveDTExperts() {
     if (userId) payload.push({ user_id: Number(userId), is_dt_expert: isExpert });
   });
 
-  // 👉 setTimeout으로 다음 tick에 fetch 실행
-  setTimeout(async () => {
-    try {
-      const res = await authFetch(`${EP_TEAM_MEMBERS}/dt-expert-status`, {
-        method: 'PUT',
-        body: JSON.stringify({ updates: payload })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || '저장 중 오류 발생');
+  try {
+    const res = await authFetch(`${EP_TEAM_MEMBERS}/dt-expert-status`, {
+      method: 'PUT',
+      body: JSON.stringify({ updates: payload })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.message || '저장 중 오류 발생');
 
-      toast('DT 전문가 정보가 저장되었습니다.');
-      await loadTeamMembers();
-    } catch (e) {
-      console.error(e);
-      toast(e.message || '저장 실패');
-    } finally {
-      btn && (btn.disabled = false);
-    }
-  }, 0);
+    toast('DT 전문가 정보가 저장되었습니다.');
+    await loadTeamMembers();
+  } catch (e) {
+    console.error(e);
+    toast(e.message || '저장 실패');
+  } finally {
+    btn && (btn.disabled = false);
+  }
 }

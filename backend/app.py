@@ -53,6 +53,9 @@ def create_app():
 
     return app
 
+# backend/app.py
+
 if __name__ == "__main__":
     app = create_app()
-    app.run(debug=True)
+    # use_reloader=False 옵션을 추가하여 자동 재시작을 비활성화합니다.
+    app.run(debug=True, use_reloader=False)

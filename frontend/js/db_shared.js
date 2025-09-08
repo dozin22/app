@@ -60,9 +60,10 @@ export function setText(id, text){
 export function toast(msg){
   console.log("[알림]", msg);
   alert(msg);
-}
+} 
 
 export function authFetch(url, opt = {}){
+  debugger;
   const token = getToken();
   const headers = {
     "Content-Type":"application/json",
