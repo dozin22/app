@@ -17,30 +17,29 @@ from auth import bp_auth
 from user_management import bp_user_management
 from workflow_management import bp_workflow_management
 
+
 def create_app():
     app = Flask(__name__)
 
-    # JWT
-    app.config["JWT_SECRET_KEY"] = JWT_SECRET
-    JWTManager(app)
 
-    # ✅ CORS 설정 강화: Authorization 헤더/OPTIONS/메서드 전부 허용
-    CORS(
-        app,
-        resources={
-            r"/api/*": {
-                "origins": [
-                    "http://localhost:5500",   # VSCode Live Server 등
-                    "http://127.0.0.1:5500",
-                    "http://localhost:5501"
-                ],
-                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                "allow_headers": ["Content-Type", "Authorization"],
-                "expose_headers": ["Content-Type", "Authorization"],
-            }
-        },
-        supports_credentials=False,  # 토큰을 헤더로 쓰는 구조면 보통 False
-    )
+    # 기본 설정
+    app.config["SECRET_KEY"] = SECRET_KEY
+    app.config["JWT_SECRET_KEY"] = JWT_SECRET
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 60 * 60 * JWT_ACCESS_TOKEN_HOURS
+
+
+    # SQLAlchemy 설정
+    app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = SQLALCHEMY_TRACK_MODIFICATIONS
+
+
+    # 확장 프로그램 초기화
+    JWTManager(app)
+    CORS(app, 
+         resources={r"/api/*": {"origins": "http://127.0.0.1:5500"}},
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], 
+         supports_credentials=True)
 
 
     # 블루프린트 등록

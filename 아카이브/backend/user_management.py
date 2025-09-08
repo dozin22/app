@@ -1,15 +1,14 @@
-# backend/db_management.py
+# backend/user_management.py
 # -*- coding: utf-8 -*-
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy.orm import selectinload, joinedload  # joinedload는 /me_get 유지용
-# from sqlalchemy import select  # 현재 미사용이면 주석처리
+from sqlalchemy.orm import selectinload, joinedload
 
-from orm_build import get_session, User, Team, Responsibility, TaskTemplate
+from orm_build import get_session, User, Team, Responsibility
 
-bp_db_management = Blueprint("db_management", __name__, url_prefix="/api/db-management")
+bp_user_management = Blueprint("user_management", __name__, url_prefix="/api/user-management")
 
 # ─────────────────────────────────────────────────────────────
 # 권한 가드: DT_Expert OR 팀장만 통과
@@ -77,7 +76,7 @@ def require_db_admin(fn):
 
 # ─────────────────────────────────────────────────────────────
 # 내 정보 조회
-@bp_db_management.route("/me", methods=["GET"])
+@bp_user_management.route("/me", methods=["GET"])
 @jwt_required()
 def me_get():
     try:
@@ -99,7 +98,7 @@ def me_get():
 
 # ─────────────────────────────────────────────────────────────
 # 내 정보 수정
-@bp_db_management.route("/me", methods=["PUT"])
+@bp_user_management.route("/me", methods=["PUT"])
 @jwt_required()
 def me_update():
     try:
@@ -156,7 +155,7 @@ def me_update():
 
 # ─────────────────────────────────────────────────────────────
 # DT 전문가 선임 (팀장 전용)
-@bp_db_management.get("/team-members")
+@bp_user_management.get("/team-members")
 @require_team_lead
 def get_team_members(current_user: User):
     """현재 로그인한 팀장의 팀원 목록과 DT 전문가 여부를 반환"""
@@ -180,7 +179,7 @@ def get_team_members(current_user: User):
             })
         return jsonify(data), 200
 
-@bp_db_management.put("/team-members/dt-expert-status")
+@bp_user_management.put("/team-members/dt-expert-status")
 @require_team_lead
 def update_dt_expert_status(current_user: User):
     """팀원들의 DT 전문가 역할을 업데이트"""
@@ -206,61 +205,3 @@ def update_dt_expert_status(current_user: User):
                 member.responsibilities.remove(dt_expert_responsibility)
 
     return jsonify({"message": "DT 전문가 정보가 업데이트되었습니다."}), 200
-
-# ─────────────────────────────────────────────────────────────
-# 업무 정보 관리 (팀장 전용)
-@bp_db_management.get("/task-templates")
-@require_team_lead
-def get_task_templates(current_user: User):
-    """팀장의 팀에 속한 TaskTemplate 목록과 Responsibility 목록을 반환"""
-    with get_session() as s:
-        s.add(current_user)
-        if not current_user.team_id:
-            return jsonify({"task_templates": [], "responsibilities": []})
-
-        # 팀의 Responsibility 목록 조회
-        responsibilities = s.query(Responsibility).filter_by(team_id=current_user.team_id).all()
-        resp_ids = [r.responsibility_id for r in responsibilities]
-
-        # 해당 Responsibility에 연결된 TaskTemplate 목록 조회
-        task_templates = s.query(TaskTemplate).filter(TaskTemplate.required_responsibility_id.in_(resp_ids)).order_by(TaskTemplate.template_name).all()
-
-        return jsonify({
-            "task_templates": [
-                {
-                    "task_template_id": tt.task_template_id,
-                    "template_name": tt.template_name,
-                    "task_type": tt.task_type,
-                    "category": tt.category,
-                    "description": tt.description,
-                    "required_responsibility_id": tt.required_responsibility_id,
-                } for tt in task_templates
-            ],
-            "responsibilities": [
-                {"responsibility_id": r.responsibility_id, "responsibility_name": r.responsibility_name} for r in responsibilities
-            ]
-        })
-
-@bp_db_management.put("/task-templates/<int:template_id>")
-@require_team_lead
-def update_task_template(current_user: User, template_id: int):
-    """TaskTemplate 정보를 업데이트"""
-    data = request.get_json()
-    with get_session() as s:
-        s.add(current_user)
-        tt = s.get(TaskTemplate, template_id)
-        if not tt:
-            return jsonify({"message": "템플릿을 찾을 수 없습니다."}), 404
-
-        # 해당 템플릿이 팀장의 팀 소속인지 확인 (보안)
-        resp = s.get(Responsibility, tt.required_responsibility_id)
-        if not resp or resp.team_id != current_user.team_id:
-            return jsonify({"message": "권한이 없습니다."}), 403
-
-        tt.template_name = data.get("template_name", tt.template_name)
-        tt.task_type = data.get("task_type", tt.task_type)
-        tt.category = data.get("category", tt.category)
-        tt.description = data.get("description", tt.description)
-        tt.required_responsibility_id = data.get("required_responsibility_id", tt.required_responsibility_id)
-
-        return jsonify({"message": "업무 템플릿이 업데이트되었습니다."})
