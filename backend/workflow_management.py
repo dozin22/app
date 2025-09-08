@@ -175,8 +175,3 @@ def delete_task_template(template_id: int):
                 return jsonify({"message": "업무 템플릿이 팀에서 제거되었습니다."}), 200
         else:
             return jsonify({"message": "해당 템플릿은 현재 팀에 매핑되어 있지 않습니다."}), 404
-
-@bp_workflow_management.before_request
-def _skip_jwt_on_options_workflow():
-    if request.method == "OPTIONS":
-        return ("", 204)

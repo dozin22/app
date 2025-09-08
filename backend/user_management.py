@@ -206,9 +206,3 @@ def update_dt_expert_status(current_user: User):
 
     return jsonify({"message": "DT 전문가 정보가 업데이트되었습니다."}), 200
 
-
-@bp_user_management.before_request
-def _skip_jwt_on_options_user():
-    if request.method == "OPTIONS":
-        # ✅ 프리플라이트는 통과시켜 JWT 미검사
-        return ("", 204)

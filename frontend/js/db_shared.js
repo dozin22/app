@@ -69,7 +69,18 @@ export function authFetch(url, opt = {}){
     ...(opt.headers || {}),
     ...(token ? { "Authorization": `Bearer ${token}` } : {})
   };
-  return fetch(url, { ...opt, headers });
+  return fetch(url, { ...opt, headers }).then(res => {
+    if (res.status === 401) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(NAME_KEY);
+      localStorage.removeItem(POS_KEY);
+      localStorage.removeItem(TEAM_KEY);
+      localStorage.removeItem(EMAIL_KEY);
+      alert("세션이 만료되었거나 유효하지 않습니다. 다시 로그인해주세요.");
+      window.location.replace("login.html");
+    }
+    return res;
+  });
 }
 
 export function getLocalFromEmail(email){

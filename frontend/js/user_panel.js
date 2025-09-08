@@ -202,7 +202,6 @@ function renderTeamMembers(members){
   });
 }
 async function onSaveDTExperts() {
-  // ✅ 중복 클릭 방지(선택): 저장 중 버튼 잠깐 비활성화
   const btn = document.getElementById("btnDTSave");
   btn && (btn.disabled = true);
 
@@ -213,20 +212,23 @@ async function onSaveDTExperts() {
     if (userId) payload.push({ user_id: Number(userId), is_dt_expert: isExpert });
   });
 
-  try {
-    const res = await authFetch(`${EP_TEAM_MEMBERS}/dt-expert-status`, {
-      method: 'PUT',
-      body: JSON.stringify({ updates: payload })
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data?.message || '저장 중 오류 발생');
+  // 👉 setTimeout으로 다음 tick에 fetch 실행
+  setTimeout(async () => {
+    try {
+      const res = await authFetch(`${EP_TEAM_MEMBERS}/dt-expert-status`, {
+        method: 'PUT',
+        body: JSON.stringify({ updates: payload })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || '저장 중 오류 발생');
 
-    toast('DT 전문가 정보가 저장되었습니다.');
-    await loadTeamMembers();
-  } catch (e) {
-    console.error(e);
-    toast(e.message || '저장 실패');
-  } finally {
-    btn && (btn.disabled = false);
-  }
+      toast('DT 전문가 정보가 저장되었습니다.');
+      await loadTeamMembers();
+    } catch (e) {
+      console.error(e);
+      toast(e.message || '저장 실패');
+    } finally {
+      btn && (btn.disabled = false);
+    }
+  }, 0);
 }
