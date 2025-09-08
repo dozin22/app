@@ -204,7 +204,6 @@ def update_dt_expert_status(current_user: User):
                 member.responsibilities.append(dt_expert_responsibility)
             elif not is_dt_expert and has_resp:
                 member.responsibilities.remove(dt_expert_responsibility)
-            time.sleep(0.5)
 
     return jsonify({"message": "DT 전문가 정보가 업데이트되었습니다."}), 200
 

@@ -1,10 +1,136 @@
 // /frontend/js/db_management.js
 
-// 공용 모듈과 각 패널의 초기화 함수를 가져옵니다.
-import {
-    State, authFetch, EP_ME, toast, setText, 
-    getLocalFromEmail, setKvEmailView, NAME_KEY, EMAIL_KEY, POS_KEY, TEAM_KEY
-} from './db_shared.js';
+/* ==================================================
+ * ===== (기존 db_shared.js의 내용) =====
+ * 공용 상수, 전역 상태, 헬퍼 함수들
+ * ================================================== */
+
+// API 엔드포인트와 공용 상수를 정의하고 내보냅니다.
+import { API_URL } from './config.js';
+
+export const TOKEN_KEY = "token";
+export const NAME_KEY  = "name";
+export const POS_KEY   = "position";
+export const TEAM_KEY  = "team";
+export const EMAIL_KEY = "email";
+
+export const EP_TEAM_MEMBERS   = `${API_URL}/user-management/team-members`;
+export const EP_TASK_TEMPLATES = `${API_URL}/workflow-management/task-templates`;
+export const EP_TEAMS          = `${API_URL}/db-management/teams`;
+export const EP_ME             = `${API_URL}/user-management/me`;
+
+export const FIXED_DOMAIN = '@nongshim.com';
+
+// 어플리케이션의 전역 상태를 관리하는 객체입니다.
+export const State = {
+  me: {
+    name: localStorage.getItem(NAME_KEY)  || "—",
+    position: localStorage.getItem(POS_KEY) || "—",
+    team: localStorage.getItem(TEAM_KEY) || "—",
+    email: localStorage.getItem(EMAIL_KEY) || "—",
+    team_id: null,
+  },
+  isLead: false,
+  teamMembers: [],
+  taskTemplates: [],
+  teamResponsibilities: [],
+  teams: [],
+  editing: false,
+  editBackup: null,
+};
+
+// 공용 유틸리티 함수들입니다.
+export function getToken(){ return localStorage.getItem(TOKEN_KEY); }
+
+export function esc(v){
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '/': '&#x2F;',
+    '`': '&#x60;',
+    '=': '&#x3D;',
+  };
+  return String(v ?? "").replace(/[&<>"'`=\/]/g, s => map[s]);
+}
+
+export function setText(id, text){
+  const el = document.getElementById(id);
+  if(el) el.textContent = (text ?? "—");
+}
+
+export function toast(msg){
+  console.log("[알림]", msg);
+  alert(msg);
+} 
+
+export function authFetch(url, opt = {}){
+  debugger;
+  const token = getToken();
+  const headers = {
+    "Content-Type":"application/json",
+    ...(opt.headers || {}),
+    ...(token ? { "Authorization": `Bearer ${token}` } : {})
+  };
+  return fetch(url, { ...opt, headers }).then(res => {
+    if (res.status === 401) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(NAME_KEY);
+      localStorage.removeItem(POS_KEY);
+      localStorage.removeItem(TEAM_KEY);
+      localStorage.removeItem(EMAIL_KEY);
+      alert("세션이 만료되었거나 유효하지 않습니다. 다시 로그인해주세요.");
+      window.location.replace("login.html");
+    }
+    return res;
+  });
+}
+
+export function getLocalFromEmail(email){
+  const v = (email || "").trim();
+  if (!v) return '';
+  if (v.toLowerCase().endsWith(FIXED_DOMAIN.toLowerCase())) {
+    return v.slice(0, -FIXED_DOMAIN.length).replace(/@$/, '');
+  }
+  return v.includes('@') ? v.split('@')[0] : v;
+}
+
+export function buildEmail(local){
+  const lp = String(local || "").replace(/\s+/g, '').replace(/@.*/g, '');
+  return lp ? `${lp}${FIXED_DOMAIN}` : '';
+}
+
+export function setKvEmailView(local){
+  const cell = document.getElementById('kvEmail');
+  if (!cell) return;
+  cell.innerHTML = `<span id="kvEmailLocal">${esc(local || '')}</span><span class="email-domain">${FIXED_DOMAIN}</span>`;
+}
+
+export function setKvEmailEdit(local){
+  const cell = document.getElementById('kvEmail');
+  if (!cell) return;
+  cell.innerHTML = `
+    <input id="inpEmailLocal" type="text" value="${esc(local || '')}" placeholder="아이디" style="width:100%;max-width:220px;">
+    <span class="email-domain">${FIXED_DOMAIN}</span>
+  `;
+  const input = document.getElementById('inpEmailLocal');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    input.value = (input.value || "").replace(/\s+/g, '').replace(/@.*/g, '');
+  });
+  input.addEventListener('keydown', (e) => { if (e.key === '@') e.preventDefault(); });
+}
+
+
+/* ==================================================
+ * ===== (기존 db_management.js의 내용) =====
+ * 페이지 초기화 및 탭 관리 로직
+ * ================================================== */
+
+// 각 패널의 초기화 함수를 가져옵니다.
+// ✅ 이제 shared.js를 import할 필요가 없습니다.
 import { initUserPanel, loadTeamMembers } from './user_panel.js';
 import { initWorkflowPanel, loadTaskTemplates } from './workflow_panel.js';
 

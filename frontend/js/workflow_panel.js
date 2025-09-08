@@ -1,5 +1,5 @@
 // /frontend/js/workflow_panel.js
-import { State, esc, toast, authFetch, EP_TASK_TEMPLATES } from './db_shared.js';
+import { State, esc, toast, authFetch, EP_TASK_TEMPLATES } from './db_management.js';
 
 // 최근에 사용자가 선택했던 템플릿 id를 기억해서, 갱신 후에도 선택 유지
 let lastSelectedTemplateId = null;
@@ -26,7 +26,21 @@ export function initWorkflowPanel() {
     onSaveTaskTemplate();
   });
 
-  // 4) 리스트 클릭 델리게이션
+  // ✅ 4) '복사' 버튼 이벤트 리스너 추가
+  document.getElementById("btnCopyTaskTemplate")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onCopyTaskTemplate();
+  });
+
+  // ✅ 5) '삭제' 버튼 이벤트 리스너 추가
+  document.getElementById("btnDeleteTaskTemplate")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onDeleteTaskTemplate();
+  });
+
+  // 6) 리스트 클릭 델리게이션
   const tableWrap = document.querySelector('.task-list-wrap');
   if (tableWrap) {
     tableWrap.addEventListener('click', (e) => {
@@ -43,6 +57,78 @@ export function initWorkflowPanel() {
     });
   }
 }
+
+// ✅ '복사' 버튼 클릭 시 실행될 함수 추가
+function onCopyTaskTemplate() {
+  if (!lastSelectedTemplateId) {
+    toast("복사할 템플릿을 먼저 선택하세요.");
+    return;
+  }
+
+  const originalTemplate = State.taskTemplates.find(t => Number(t.task_template_id) === Number(lastSelectedTemplateId));
+  if (!originalTemplate) {
+    toast("원본 템플릿 정보를 찾을 수 없습니다.");
+    return;
+  }
+
+  // 원본을 복사하되, ID를 제거하여 '새 템플릿'으로 인식하게 만듭니다.
+  const copiedTemplate = { ...originalTemplate };
+  delete copiedTemplate.task_template_id;
+  
+  // 사용자가 쉽게 알아보도록 이름 뒤에 '(복사)'를 붙여줍니다.
+  copiedTemplate.template_name = `${originalTemplate.template_name} (복사)`;
+
+  // 복사된 정보로 폼을 채웁니다.
+  showTaskTemplateForm(copiedTemplate);
+}
+
+// ✅ '삭제' 버튼 클릭 시 실행될 함수 추가
+async function onDeleteTaskTemplate() {
+  if (!lastSelectedTemplateId) {
+    toast("삭제할 템플릿을 먼저 선택하세요.");
+    return;
+  }
+
+  const templateToDelete = State.taskTemplates.find(t => Number(t.task_template_id) === Number(lastSelectedTemplateId));
+  if (!templateToDelete) {
+    toast("삭제할 템플릿 정보를 찾을 수 없습니다.");
+    return;
+  }
+
+  if (!confirm(`'${templateToDelete.template_name}' 템플릿을 현재 팀에서 제거하시겠습니까?\n(다른 팀에서 사용하지 않는 경우 영구적으로 삭제됩니다.)`)) {
+    return;
+  }
+
+  const btn = document.getElementById("btnDeleteTaskTemplate");
+  btn && (btn.disabled = true);
+
+  const url = `${EP_TASK_TEMPLATES}/${lastSelectedTemplateId}`;
+
+  try {
+    const res = await authFetch(url, { method: 'DELETE' });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data?.message || "템플릿 삭제 실패");
+    }
+
+    toast(data?.message || "템플릿이 삭제되었습니다.");
+
+    lastSelectedTemplateId = null; // 선택 해제
+    await loadTaskTemplates(); // 목록 새로고침
+
+    // 폼 숨기기
+    document.getElementById("taskForm")?.classList.add("hidden");
+    document.getElementById("taskFormPlaceholder")?.classList.remove("hidden");
+
+  } catch (e) {
+    console.error(e);
+    toast(e.message || "템플릿 삭제 중 오류가 발생했습니다.");
+  } finally {
+    btn && (btn.disabled = false);
+  }
+}
+
 
 /* =========================
  * ===== 업무 정보 관리 =====
@@ -138,7 +224,10 @@ function showTaskTemplateForm(template) {
 
   const isNew = !template.task_template_id;
   document.getElementById("taskFormTitle").textContent = isNew ? "새 업무 템플릿 생성" : "업무 템플릿 편집";
+  
+  // ✅ '삭제'와 '복사' 버튼은 새 템플릿일 때 숨김
   document.getElementById("btnDeleteTaskTemplate").classList.toggle("hidden", isNew);
+  document.getElementById("btnCopyTaskTemplate").classList.toggle("hidden", isNew);
 
   document.getElementById("inpTaskId").value         = template.task_template_id ?? "";
   document.getElementById("inpTaskName").value       = template.template_name ?? "";
@@ -200,7 +289,6 @@ export async function onSaveTaskTemplate() {
       } else if (!isNew) {
         lastSelectedTemplateId = Number(templateId);
       }
-
       await loadTaskTemplates();
 
       // 갱신 후 행 강조 복구 (loadTaskTemplates 내부에서도 수행하지만 한 번 더)

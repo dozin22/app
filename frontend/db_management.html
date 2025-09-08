@@ -3,15 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <title>기준 정보 관리</title>
-  <!-- 공통 스타일: index와 동일 -->
   <link rel="stylesheet" href="./css/style.css" />
-  <!-- 페이지 보조 스타일(최소) -->
   <link rel="stylesheet" href="./css/db_management.css" />
 </head>
 <body>
 
 <div class="layout">
-  <!-- ✅ 사이드바: index.html과 동일한 구조/링크 -->
   <aside class="sidebar">
     <h2>메뉴</h2>
     <ul>
@@ -22,7 +19,6 @@
     </ul>
   </aside>
 
-  <!-- ✅ 메인 -->
   <main class="main">
     <header style="display:flex; align-items:center; justify-content:space-between;">
       <h1>기준 정보 관리</h1>
@@ -34,9 +30,7 @@
         <button id="btnLogout" class="btn btn-ghost">로그아웃</button>
       </div>
     </header>
-  <!-- ✅ 일정 공백 추가 -->
-    <div style="height:20px;"></div>
-    <!-- 🔹 좌측 라인형 탭 (index 톤에 맞춘 라이트 테마) -->
+  <div style="height:20px;"></div>
     <section class="dbm-wrap">
       <nav class="v-tabs">
         <button class="v-tab active" data-tab="user" id="tabUser"><span>1</span> 유저 정보</button>
@@ -46,7 +40,6 @@
       </nav>
 
       <section class="dbm-content" style="width: 800px;">
-        <!-- 유저 정보 -->
         <div class="panel" id="panel-user">
           <div class="card">
             <h3>내 계정</h3>
@@ -69,7 +62,6 @@
           </div>
 </div>
 
-        <!-- DT 전문가 (팀장 전용) -->
         <div class="panel hidden" id="panel-dt">
           <div id="dtGuard" class="guard hidden">
             <div class="guard-box">
@@ -90,7 +82,7 @@
                     <th>DT 전문가 여부</th>
                   </tr>
                 </thead>
-                <tbody><!-- JS --></tbody>
+                <tbody></tbody>
               </table>
             </div>
             <div class="actions">
@@ -100,7 +92,6 @@
           </div>
         </div>
 
-        <!-- 업무 정보 (미구현 스텁) -->
         <div class="panel hidden" id="panel-work">
             <div class="work-editor-layout">
                 <div class="work-list-pane">
@@ -117,8 +108,7 @@
                                 </tr>
                             </thead>
                             <tbody id="taskListBody">
-                                <!-- JS로 렌더링 -->
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
@@ -133,6 +123,7 @@
                         <div class="form-group"><label for="selTaskResp">담당 책임</label><select id="selTaskResp"></select></div>
                         <div class="actions">
                             <button class="btn" id="btnDeleteTaskTemplate">삭제</button>
+                            <button class="btn" id="btnCopyTaskTemplate">복사</button>
                             <button class="btn primary" id="btnSaveTaskTemplate" type="button">저장</button>
                         </div>
                     </div>
@@ -141,7 +132,6 @@
             </div>
         </div>
 
-        <!-- 업무 트리 (미구현 스텁) -->
         <div class="panel hidden" id="panel-tree">
           <div class="card">
             <h3>업무 트리</h3>
@@ -158,7 +148,6 @@
   </main>
 </div>
 
-<!-- ✅ 스크립트 (모듈) -->
 <script type="module" src="./js/db_management.js"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@ import {
     State, esc, toast, authFetch, EP_ME, EP_TEAMS, EP_TEAM_MEMBERS, 
     FIXED_DOMAIN, EMAIL_KEY, POS_KEY, TEAM_KEY,
     getLocalFromEmail, buildEmail, setKvEmailView, setKvEmailEdit
-} from './db_shared.js';
+} from './db_management.js';
 
 // 이 모듈의 모든 로직을 초기화하고 이벤트 리스너를 바인딩합니다.
 export function initUserPanel() {
@@ -225,7 +225,8 @@ async function onSaveDTExperts() {
     if (!res.ok) throw new Error(data?.message || '저장 중 오류 발생');
 
     toast('DT 전문가 정보가 저장되었습니다.');
-    await loadTeamMembers();
+    // await loadTeamMembers();
+
   } catch (e) {
     console.error(e);
     toast(e.message || '저장 실패');
