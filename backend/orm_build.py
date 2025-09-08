@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from typing import Optional
 
 from sqlalchemy import (
-    create_engine, ForeignKey, UniqueConstraint,
+    create_engine, ForeignKey, UniqueConstraint, JSON,
     String, Integer, Text, TIMESTAMP
 )
 from sqlalchemy.orm import (
@@ -65,9 +65,7 @@ class Team(Base):
     team_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     team_name: Mapped[str] = mapped_column(String, nullable=False, unique=False)
 
-    users: Mapped[list["User"]] = relationship(
-        back_populates="teams", secondary="user_team_mappings"
-    )
+    users: Mapped[list["User"]] = relationship(back_populates="team")
     responsibilities: Mapped[list["Responsibility"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
     )
@@ -103,21 +101,19 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         TIMESTAMP, nullable=False, server_default=func.now()
     )
+    team_id: Mapped[Optional[int]] = mapped_column(ForeignKey("teams.team_id"))
 
-    teams: Mapped[list["Team"]] = relationship(
-        back_populates="users", secondary="user_team_mappings"
+    requests: Mapped[list["Request"]] = relationship(
+        back_populates="requester", foreign_keys="Request.requester_user_id"
     )
+
+    team: Mapped[Optional["Team"]] = relationship(back_populates="users")
     responsibilities: Mapped[list["Responsibility"]] = relationship(
         back_populates="users", secondary="user_responsibilities"
     )
     assigned_tasks: Mapped[list["Task"]] = relationship(
         back_populates="assigned_users", secondary="task_assignments"
     )
-
-class UserTeamMapping(Base):
-    __tablename__ = "user_team_mappings"
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True)
-    team_id: Mapped[int] = mapped_column(ForeignKey("teams.team_id", ondelete="CASCADE"), primary_key=True)
 
 class UserResponsibility(Base):
     __tablename__ = "user_responsibilities"
@@ -137,8 +133,8 @@ class TaskTemplate(Base):
 
     required_responsibility: Mapped[Optional["Responsibility"]] = relationship(
         back_populates="required_by_task_templates"
-    )
-    workflow_definitions: Mapped[list["WorkflowTemplateDefinition"]] = relationship(
+    ) # :contentReference[oaicite:1]{source_path="/Users/khw/Desktop/app/backend/orm_build.py" start_line=156 end_line=160}
+    workflow_definitions: Mapped[list["WorkflowTemplateDefinition"]] = relationship( # :contentReference[oaicite:1]{source_path="/Users/khw/Desktop/app/backend/orm_build.py" start_line=156 end_line=160}
         back_populates="task_template",
         foreign_keys="WorkflowTemplateDefinition.task_template_id",   # ← 이 줄 추가!
         cascade="all, delete-orphan"
@@ -149,6 +145,32 @@ class TaskTemplate(Base):
     )
     tasks: Mapped[list["Task"]] = relationship(back_populates="task_template")
 
+class RequestTemplate(Base):
+    __tablename__ = "request_templates"
+    request_template_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    template_name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    workflow_template_id: Mapped[Optional[int]] = mapped_column(ForeignKey("workflow_templates.workflow_template_id"))
+
+    workflow_template: Mapped[Optional["WorkflowTemplate"]] = relationship(back_populates="request_templates")
+    requests: Mapped[list["Request"]] = relationship(back_populates="request_template")
+
+class Request(Base):
+    __tablename__ = "requests"
+    request_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    request_template_id: Mapped[Optional[int]] = mapped_column(ForeignKey("request_templates.request_template_id"))
+    workflow_id: Mapped[Optional[int]] = mapped_column(ForeignKey("workflows.workflow_id"))
+    requester_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.user_id"))
+    status: Mapped[Optional[str]] = mapped_column(String, default="PENDING")
+    created_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
+    completed_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
+    parameters: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    request_template: Mapped[Optional["RequestTemplate"]] = relationship(back_populates="requests")
+    requester: Mapped[Optional["User"]] = relationship(back_populates="requests")
+    workflow: Mapped[Optional["Workflow"]] = relationship(back_populates="request", uselist=False)
+    
+
 class WorkflowTemplate(Base):
     __tablename__ = "workflow_templates"
     workflow_template_id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -157,6 +179,7 @@ class WorkflowTemplate(Base):
 
     definitions: Mapped[list["WorkflowTemplateDefinition"]] = relationship(back_populates="workflow_template")
     workflows: Mapped[list["Workflow"]] = relationship(back_populates="workflow_template")
+    request_templates: Mapped[list["RequestTemplate"]] = relationship(back_populates="workflow_template")
 
 class WorkflowTemplateDefinition(Base):
     __tablename__ = "workflow_template_definitions"
@@ -186,6 +209,7 @@ class Workflow(Base):
     workflow_template: Mapped[Optional["WorkflowTemplate"]] = relationship(back_populates="workflows")
     assigned_team: Mapped[Optional["Team"]] = relationship(back_populates="workflows")
     tasks: Mapped[list["Task"]] = relationship(back_populates="workflow")
+    request: Mapped[Optional["Request"]] = relationship(back_populates="workflow", uselist=False, cascade="all, delete-orphan")
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -195,6 +219,8 @@ class Task(Base):
     status: Mapped[Optional[str]] = mapped_column(String, default="PENDING")
     created_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
     completed_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
+    input_params: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    output_params: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     task_template: Mapped[Optional["TaskTemplate"]] = relationship(back_populates="tasks")
     workflow: Mapped[Optional["Workflow"]] = relationship(back_populates="tasks")

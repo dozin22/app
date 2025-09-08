@@ -1,7 +1,7 @@
 # backend/db_management.py
 # -*- coding: utf-8 -*-
 from functools import wraps
-
+from typing import Any, Callable
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import selectinload, joinedload  # joinedload는 /me_get 유지용
@@ -15,6 +15,21 @@ bp_db_management = Blueprint("db_management", __name__, url_prefix="/api/db-mana
 # 권한 가드: DT_Expert OR 팀장만 통과
 ALLOWED_RESP = {"DT_Expert"}   # 책임(Responsibility) 이름 표준
 ALLOWED_POS  = {"팀장"}        # 직위(Position) 표준
+
+def _serialize_user(user: User) -> dict[str, Any]:
+    """User 객체를 JSON 직렬화 가능한 딕셔너리로 변환합니다."""
+    if not user:
+        return {}
+    return {
+        "user_id": user.user_id,
+        "name": user.user_name,
+        "email": user.email,
+        "position": user.position,
+        "team_id": user.team.team_id if user.team else None,
+        "team": user.team.team_name if user.team else "팀 없음",
+    }
+
+
 
 def require_db_admin(fn):
     """DT_Expert 또는 팀장만 접근 허용하는 데코레이터"""
@@ -61,23 +76,14 @@ def me_get():
     with get_session() as s:
         user = (
             s.query(User)
-            .options(joinedload(User.teams))  # 여기선 JOIN으로 한 방에
+            .options(joinedload(User.team))  # 여기선 JOIN으로 한 방에
             .filter_by(user_id=uid)
             .first()
         )
         if not user:
             return jsonify({"message": "유저를 찾을 수 없습니다"}), 404
 
-        team = user.teams[0] if user.teams else None
-
-        return jsonify({
-            "user_id": user.user_id,
-            "name": user.user_name,
-            "email": user.email,
-            "position": user.position,
-            "team_id": team.team_id if team else None,
-            "team": team.team_name if team else "팀 없음",
-        }), 200
+        return jsonify(_serialize_user(user)), 200
 
 # ─────────────────────────────────────────────────────────────
 # 내 정보 수정
@@ -130,18 +136,11 @@ def me_update():
             new_team = s.get(Team, team_id)
             if not new_team:
                 return jsonify({"message": "존재하지 않는 team_id"}), 400
-            user.teams = [new_team]  # 중간매핑 자동 정리
-
-        team = user.teams[0] if user.teams else None
-        return jsonify({
-            "user_id": user.user_id,
-            "name": user.user_name,
-            "email": user.email,
-            "position": user.position,
-            "team_id": team.team_id if team else None,
-            "team": team.team_name if team else "팀 없음",
-            "message": "저장되었습니다",
-        }), 200
+            user.team = new_team  # 직접 관계 할당
+        
+        response_data = _serialize_user(user)
+        response_data["message"] = "저장되었습니다"
+        return jsonify(response_data), 200
 
 # ─────────────────────────────────────────────────────────────
 # DT 전문가 목록 조회 (기준정보) — DT_Expert OR 팀장만 접근
@@ -149,44 +148,30 @@ def me_update():
 @require_db_admin
 def list_dt_experts():
     with get_session() as s:
-        experts = (
+        query = (
             s.query(User)
-            .options(selectinload(User.teams))  # N+1 방지
-            .filter(User.responsibilities.any(Responsibility.responsibility_name == "DT_Expert"))
+            .options(selectinload(User.team))  # N+1 방지
             .order_by(User.user_name)
-            .all()
         )
+        
+        experts = query.filter(User.responsibilities.any(Responsibility.responsibility_name == "DT_Expert")).all()
+        
+        users_to_render = experts
+        is_expert_list = True
+        if not experts:
+            users_to_render = query.all()
+            is_expert_list = False
 
         data = []
-        if experts:
-            for u in experts:
-                team = u.teams[0] if u.teams else None
-                data.append({
-                    "name": u.user_name,
-                    "team_name": team.team_name if team else "팀 없음",
-                    "role": "DT_Expert",
-                    "updated_at": None,
-                    "level": None,
-                    "cert": None,
-                })
-        else:
-            # DT_Expert 없으면 전체 사용자 목록
-            all_users = (
-                s.query(User)
-                .options(selectinload(User.teams))
-                .order_by(User.user_name)
-                .all()
-            )
-            for u in all_users:
-                team = u.teams[0] if u.teams else None
-                data.append({
-                    "name": u.user_name,
-                    "team_name": team.team_name if team else "팀 없음",
-                    "role": "—",
-                    "updated_at": None,
-                    "level": None,
-                    "cert": None,
-                })
+        for u in users_to_render:
+            data.append({
+                "name": u.user_name,
+                "team_name": u.team.team_name if u.team else "팀 없음",
+                "role": "DT_Expert" if is_expert_list else "—",
+                "updated_at": None,
+                "level": None,
+                "cert": None,
+            })
 
         return jsonify(data), 200
 

@@ -3,7 +3,7 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from datetime import timedelta
+from datetime import timedelta, timezone
 from sqlalchemy.orm import joinedload # JOIN을 위해 추가
 
 from config import JWT_ACCESS_TOKEN_HOURS
@@ -39,8 +39,8 @@ def signup():
             hashed_password=generate_password_hash(data["password"]),
             position=data["position"]
         )
-        # User와 Team 관계 설정 (user_team_mappings 테이블에 자동 반영됨)
-        new_user.teams.append(team)
+        # User와 Team 관계 설정 (User.team_id에 자동 반영됨)
+        new_user.team = team
 
         s.add(new_user)
         s.flush() # user_id를 JWT에 담기 위해 DB에 미리 반영
@@ -68,13 +68,16 @@ def login():
     # ## ORM 사용으로 변경
     with get_session() as s:
         # 이메일로 사용자 조회
-        user = s.query(User).filter_by(email=data["email"]).first()
+        user = (
+            s.query(User)
+            .options(joinedload(User.team)) # N+1 쿼리 방지를 위해 team 정보 함께 로드
+            .filter_by(email=data["email"])
+            .first()
+        )
 
         if not user or not check_password_hash(user.hashed_password, data["password"]):
             return jsonify({"message": "자격 증명이 올바르지 않습니다"}), 401
         
-        # 관계(relationship)를 통해 팀 정보 가져오기
-        team_name = user.teams[0].team_name if user.teams else "팀 없음"
 
         token = create_access_token(
             identity=str(user.user_id),
@@ -86,5 +89,5 @@ def login():
             "name": user.user_name,
             "email": user.email,
             "position": user.position,
-            "team": team_name
+            "team": user.team.team_name if user.team else "팀 없음"
         }), 200
