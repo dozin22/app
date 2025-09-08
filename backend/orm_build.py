@@ -233,8 +233,7 @@ class Task(Base):
     status: Mapped[Optional[str]] = mapped_column(String, default="PENDING")
     created_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
     completed_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
-    input_params: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
-    output_params: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    task_info_params: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     task_template: Mapped[Optional["TaskTemplate"]] = relationship(back_populates="tasks")
     workflow: Mapped[Optional["Workflow"]] = relationship(back_populates="tasks")
