@@ -5,7 +5,7 @@ import { State, esc, toast, authFetch, EP_TASK_TEMPLATES } from './db_management
 let lastSelectedTemplateId = null;
 
 // 이 모듈의 모든 로직을 초기화하고 이벤트 리스너를 바인딩합니다.
-export function initWorkflowPanel() {
+export function initTaskTemplatePanel() {
   // 1) 폼 자동제출(페이지 리로드) 방지
   document.getElementById('taskForm')?.addEventListener('submit', (e) => {
     e.preventDefault();

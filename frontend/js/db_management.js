@@ -2,7 +2,11 @@
 
 // 각 패널의 초기화 함수를 가져옵니다.
 import { initUserPanel, loadTeamMembers } from './user_panel.js';
-import { initWorkflowPanel, loadTaskTemplates } from './task_template_panel.js';
+import { initTaskTemplatePanel, loadTaskTemplates } from './task_template_panel.js';
+
+// 🔹 워크플로우 템플릿 패널은 자체적으로 DOM 이벤트를 바인딩하므로
+//    여기서는 import만 해주면 됩니다. (별도 init 호출 불필요)
+import './workflow_template_panel.js'; // ★ 추가
 
 // API 엔드포인트와 공용 상수를 정의하고 내보냅니다.
 import { API_URL } from './config.js';
@@ -17,6 +21,9 @@ export const EP_TEAM_MEMBERS   = `${API_URL}/user-management/team-members`;
 export const EP_TASK_TEMPLATES = `${API_URL}/task-management/task-templates`;
 export const EP_TEAMS          = `${API_URL}/db-management/teams`;
 export const EP_ME             = `${API_URL}/user-management/me`;
+
+// 🔹 워크플로우 템플릿 엔드포인트(프로젝트 라우트에 맞게 조정 가능)
+export const EP_WORKFLOW_TEMPLATES = `${API_URL}/workflow-management/workflow-templates`; // ★ 추가
 
 export const FIXED_DOMAIN = '@nongshim.com';
 
@@ -123,7 +130,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   markActiveByTabKey(State.activeTab); // ✅ State에 저장된 탭으로 마킹
 
   initUserPanel();
-  initWorkflowPanel();
+  initTaskTemplatePanel();
+  // 워크플로우 템플릿 패널은 import 시 이벤트 구독 + 탭 진입 시 자동 초기화
 });
 
 // ===== 초기화 함수들 =====
@@ -183,14 +191,19 @@ function bindTabs(){
       State.activeTab = tabKey; // ✅ 클릭 시 State 업데이트
       showPanel(tabKey);
       markActive(btn);
+
       if(tabKey === "dt" && State.isLead && State.teamMembers.length === 0){
         await loadTeamMembers();
       }
       if(tabKey === "work" && State.taskTemplates.length === 0) {
         await loadTaskTemplates();
       }
+      // 🔹 flow 탭은 workflow_template_panel.js가 탭 노출 시 자체 로딩함
+      //    별도 호출 필요 없음. 필요 시 여기서 커스텀 이벤트를 쏴도 됨.
+      // document.dispatchEvent(new CustomEvent('panel:activated', { detail: { targetId: '#panel-flow' }}));
     });
   });
+
   document.getElementById("btnLogout")?.addEventListener("click", () => {
     localStorage.clear();
     alert("로그아웃 되었습니다.");
@@ -203,17 +216,27 @@ function markActive(activeBtn){
   activeBtn.classList.add("active");
 }
 
-// ✅ '키'를 기반으로 탭을 활성화하는 함수 추가
+// ✅ '키'를 기반으로 탭을 활성화하는 함수
 export function markActiveByTabKey(key) {
-    const selector = `.v-tab[data-tab="${key}"]`;
-    const activeBtn = document.querySelector(selector);
-    if (activeBtn) {
-        markActive(activeBtn);
-    }
+  const selector = `.v-tab[data-tab="${key}"]`;
+  const activeBtn = document.querySelector(selector);
+  if (activeBtn) {
+    markActive(activeBtn);
+  }
 }
 
+// 🔹 flow 패널을 매핑에 포함
 function showPanel(key){
-  const ids = { user:"panel-user", dt:"panel-dt", work:"panel-work", tree:"panel-tree" };
+  const ids = {
+    user: "panel-user",
+    dt:   "panel-dt",
+    work: "panel-work",
+    flow: "panel-flow", // ★ 추가
+    tree: "panel-tree"
+  };
   Object.values(ids).forEach(id => document.getElementById(id)?.classList.add("hidden"));
   document.getElementById(ids[key])?.classList.remove("hidden");
+
+  // 필요 시 패널 활성화 이벤트 발행 (다른 모듈과 호환)
+  document.dispatchEvent(new CustomEvent('panel:activated', { detail: { targetId: `#${ids[key]}` } }));
 }
