@@ -1,29 +1,28 @@
 
 // /frontend/js/user_panel.js
+
+// ✅ markActiveByTabKey 함수를 import 목록에 추가
 import {
-    State, esc, toast, authFetch, EP_ME, EP_TEAMS, EP_TEAM_MEMBERS, 
+    State, esc, toast, authFetch, EP_ME, EP_TEAMS, EP_TEAM_MEMBERS,
     FIXED_DOMAIN, EMAIL_KEY, POS_KEY, TEAM_KEY,
     getLocalFromEmail, buildEmail, setKvEmailView, setKvEmailEdit,
+    markActiveByTabKey
 } from './db_management.js';
 
 // 이 모듈의 모든 로직을 초기화하고 이벤트 리스너를 바인딩합니다.
 export function initUserPanel() {
-  // ✅ 폼 자동 제출(페이지 리로드) 방지: DT 섹션 폼 id가 있으면 막기
   document.getElementById('dtForm')?.addEventListener('submit', (e) => {
     e.preventDefault();
     e.stopPropagation();
   });
 
-  // ✅ 공통 바인더: 클릭 기본동작/버블 차단
   const bind = (id, handler) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      // ✅ handler(e)를 setTimeout으로 감싸줍니다.
-      // 이렇게 하면 브라우저가 클릭 이벤트를 완전히 처리하고 난 뒤에야
-      // 저장 로직이 실행되어 충돌을 원천적으로 방지합니다.
+      // ✅ 클릭 이벤트와 실제 로직 실행을 분리하여 렌더링 충돌 방지
       setTimeout(() => handler(e), 0);
     });
   };
@@ -31,7 +30,7 @@ export function initUserPanel() {
   bind("btnEditMe", onToggleEditMe);
   bind("btnMeCancel", onCancelEditMe);
   bind("btnDTReload", () => loadTeamMembers());
-  bind("btnDTSave", onSaveDTExperts); // ✅ 화살표 함수 제거하고 직접 연결
+  bind("btnDTSave", onSaveDTExperts); // ✅ 직접 연결
 }
 
 // ===== 인라인 편집 =====
@@ -207,10 +206,12 @@ function renderTeamMembers(members){
   });
 }
 
+// ✅ onSaveDTExperts 함수 최종 수정본
 async function onSaveDTExperts() {
   const btn = document.getElementById("btnDTSave");
   if (!btn) return;
 
+  // 1. 저장 버튼 누르는 시점의 탭 '키'를 지역 변수에 저장
   const currentTabKey = State.activeTab;
 
   btn.disabled = true;
@@ -243,6 +244,8 @@ async function onSaveDTExperts() {
     console.error(e);
     toast(e.message || '저장 실패');
   } finally {
+    // 2. 성공/실패 여부와 관계없이, 저장해두었던 '키'로 탭 상태를 반드시 복원
+    markActiveByTabKey(currentTabKey);
     btn.disabled = false;
     btn.textContent = "저장";
   }

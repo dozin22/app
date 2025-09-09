@@ -1,4 +1,6 @@
+// /frontend/js/db_management.js
 
+// 각 패널의 초기화 함수를 가져옵니다.
 import { initUserPanel, loadTeamMembers } from './user_panel.js';
 import { initWorkflowPanel, loadTaskTemplates } from './workflow_panel.js';
 
@@ -34,6 +36,7 @@ export const State = {
   teams: [],
   editing: false,
   editBackup: null,
+  activeTab: 'user', // ✅ 현재 활성 탭을 기억할 변수 추가
 };
 
 // 공용 유틸리티 함수들입니다.
@@ -41,14 +44,8 @@ export function getToken(){ return localStorage.getItem(TOKEN_KEY); }
 
 export function esc(v){
   const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-    '/': '&#x2F;',
-    '`': '&#x60;',
-    '=': '&#x3D;',
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    '/': '&#x2F;', '`': '&#x60;', '=': '&#x3D;',
   };
   return String(v ?? "").replace(/[&<>"'`=\/]/g, s => map[s]);
 }
@@ -61,7 +58,7 @@ export function setText(id, text){
 export function toast(msg){
   console.log("[알림]", msg);
   alert(msg);
-} 
+}
 
 export function authFetch(url, opt = {}){
   const token = getToken();
@@ -72,11 +69,7 @@ export function authFetch(url, opt = {}){
   };
   return fetch(url, { ...opt, headers }).then(res => {
     if (res.status === 401) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(NAME_KEY);
-      localStorage.removeItem(POS_KEY);
-      localStorage.removeItem(TEAM_KEY);
-      localStorage.removeItem(EMAIL_KEY);
+      localStorage.clear();
       alert("세션이 만료되었거나 유효하지 않습니다. 다시 로그인해주세요.");
       window.location.replace("login.html");
     }
@@ -126,15 +119,14 @@ window.addEventListener("DOMContentLoaded", async () => {
   paintUserTop();
   applyRoleBasedUI();
   bindTabs();
-  showPanel("user");
+  showPanel(State.activeTab); // ✅ State에 저장된 탭으로 시작
+  markActiveByTabKey(State.activeTab); // ✅ State에 저장된 탭으로 마킹
 
-  // 각 패널의 이벤트 리스너를 초기화합니다.
   initUserPanel();
   initWorkflowPanel();
 });
 
 // ===== 초기화 함수들 =====
-
 function guardAuth(){
   const token = localStorage.getItem("token");
   if(!token){
@@ -148,15 +140,7 @@ async function hydrateMeFromServer(){
     const res = await authFetch(EP_ME);
     const data = await res.json().catch(() => ({}));
     if(!res.ok) throw new Error(data?.message || "내 정보 조회 실패");
-
-    State.me = {
-      name: data.name ?? "—",
-      email: data.email ?? "—",
-      position: data.position ?? "—",
-      team: data.team ?? "—",
-      team_id: data.team_id ?? null,
-    };
-
+    State.me = { ...State.me, ...data };
     localStorage.setItem(NAME_KEY,  State.me.name || "");
     localStorage.setItem(EMAIL_KEY, State.me.email || "");
     localStorage.setItem(POS_KEY,   State.me.position || "");
@@ -175,7 +159,6 @@ function paintUserTop(){
   setText("kvTeam", team || "—");
   setKvEmailView(getLocalFromEmail(email));
   setText("kvPosition", position);
-
   State.isLead = (String(position || "").trim() === "팀장");
 }
 
@@ -184,7 +167,6 @@ function applyRoleBasedUI() {
   if (dtTab && !State.isLead) {
     dtTab.style.display = 'none';
   }
-
   let visibleTabIndex = 1;
   document.querySelectorAll('.v-tabs .v-tab').forEach(tab => {
     if (tab && tab.style.display !== 'none') {
@@ -197,20 +179,18 @@ function applyRoleBasedUI() {
 function bindTabs(){
   document.querySelectorAll(".v-tab").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const tab = btn.getAttribute("data-tab");
-      showPanel(tab); 
+      const tabKey = btn.getAttribute("data-tab");
+      State.activeTab = tabKey; // ✅ 클릭 시 State 업데이트
+      showPanel(tabKey);
       markActive(btn);
-
-      if(tab === "dt" && State.isLead && State.teamMembers.length === 0){
+      if(tabKey === "dt" && State.isLead && State.teamMembers.length === 0){
         await loadTeamMembers();
       }
-
-      if(tab === "work" && State.taskTemplates.length === 0) {
+      if(tabKey === "work" && State.taskTemplates.length === 0) {
         await loadTaskTemplates();
       }
     });
   });
-
   document.getElementById("btnLogout")?.addEventListener("click", () => {
     localStorage.clear();
     alert("로그아웃 되었습니다.");
@@ -221,6 +201,15 @@ function bindTabs(){
 function markActive(activeBtn){
   document.querySelectorAll(".v-tab").forEach(b => b.classList.remove("active"));
   activeBtn.classList.add("active");
+}
+
+// ✅ '키'를 기반으로 탭을 활성화하는 함수 추가
+export function markActiveByTabKey(key) {
+    const selector = `.v-tab[data-tab="${key}"]`;
+    const activeBtn = document.querySelector(selector);
+    if (activeBtn) {
+        markActive(activeBtn);
+    }
 }
 
 function showPanel(key){
