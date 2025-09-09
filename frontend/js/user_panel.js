@@ -205,7 +205,6 @@ function renderTeamMembers(members){
   });
 }
 async function onSaveDTExperts() {
-  
   const btn = document.getElementById("btnDTSave");
   btn && (btn.disabled = true);
 
@@ -221,12 +220,21 @@ async function onSaveDTExperts() {
       method: 'PUT',
       body: JSON.stringify({ updates: payload })
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data?.message || '저장 중 오류 발생');
     
-    toast('DT 전문가 정보가 저장되었습니다.');
-    await loadTeamMembers();
+    // ✅ 1. 응답으로 온 최신 데이터를 직접 받음
+    const updatedTeamMembers = await res.json().catch(() => null);
 
+    if (!res.ok) {
+      throw new Error(updatedTeamMembers?.message || '저장 중 오류 발생');
+    }
+    
+    // ✅ 2. 응답 데이터를 State에 반영하고 화면을 다시 그림
+    State.teamMembers = updatedTeamMembers || [];
+    renderTeamMembers(State.teamMembers);
+
+    toast('DT 전문가 정보가 저장되었습니다.');
+
+    // ❌ 별도의 loadTeamMembers() 호출은 이제 필요 없음
 
   } catch (e) {
     console.error(e);

@@ -67,7 +67,6 @@ export function toast(msg){
 } 
 
 export function authFetch(url, opt = {}){
-  debugger;
   const token = getToken();
   const headers = {
     "Content-Type":"application/json",

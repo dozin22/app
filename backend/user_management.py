@@ -183,7 +183,7 @@ def get_team_members(current_user: User):
 @bp_user_management.put("/team-members/dt-expert-status")
 @require_team_lead
 def update_dt_expert_status(current_user: User):
-    """팀원들의 DT 전문가 역할을 업데이트"""
+    """팀원들의 DT 전문가 역할을 업데이트하고, 결과를 즉시 반환"""
     updates = request.get_json().get("updates", [])
     with get_session() as s:
         s.add(current_user)
@@ -204,6 +204,24 @@ def update_dt_expert_status(current_user: User):
                 member.responsibilities.append(dt_expert_responsibility)
             elif not is_dt_expert and has_resp:
                 member.responsibilities.remove(dt_expert_responsibility)
+        
+        # ✅ 1. 변경사항을 DB에 최종 커밋
+        s.commit()
 
-    return jsonify({"message": "DT 전문가 정보가 업데이트되었습니다."}), 200
+        # ✅ 2. 커밋 직후, 동일 세션에서 최신 팀원 목록을 다시 조회
+        team_members = s.query(User).filter(User.team_id == current_user.team_id).options(selectinload(User.responsibilities)).order_by(User.user_name).all()
+        
+        updated_data = []
+        for member in team_members:
+            is_dt_expert = any(r.responsibility_name == "DT_Expert" for r in member.responsibilities)
+            updated_data.append({
+                "user_id": member.user_id,
+                "name": member.user_name,
+                "position": member.position,
+                "email": member.email,
+                "is_dt_expert": is_dt_expert
+            })
+        
+        # ✅ 3. 성공 메시지 대신, 조회된 최신 데이터를 반환
+        return jsonify(updated_data), 200
 
