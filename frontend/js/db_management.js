@@ -4,9 +4,6 @@
 import { initUserPanel, loadTeamMembers } from './user_panel.js';
 import { initTaskTemplatePanel, loadTaskTemplates } from './task_template_panel.js';
 
-// 🔹 워크플로우 템플릿 패널은 자체적으로 DOM 이벤트를 바인딩하므로
-//    여기서는 import만 해주면 됩니다. (별도 init 호출 불필요)
-import './workflow_template_panel.js'; // ★ 추가
 
 // API 엔드포인트와 공용 상수를 정의하고 내보냅니다.
 import { API_URL } from './config.js';
@@ -19,11 +16,9 @@ export const EMAIL_KEY = "email";
 
 export const EP_TEAM_MEMBERS   = `${API_URL}/user-management/team-members`;
 export const EP_TASK_TEMPLATES = `${API_URL}/task-management/task-templates`;
+export const EP_WORKFLOW_TEMPLATES = `${API_URL}/workflow-management/workflow-templates`;
 export const EP_TEAMS          = `${API_URL}/db-management/teams`;
 export const EP_ME             = `${API_URL}/user-management/me`;
-
-// 🔹 워크플로우 템플릿 엔드포인트(프로젝트 라우트에 맞게 조정 가능)
-export const EP_WORKFLOW_TEMPLATES = `${API_URL}/workflow-management/workflow-templates`; // ★ 추가
 
 export const FIXED_DOMAIN = '@nongshim.com';
 

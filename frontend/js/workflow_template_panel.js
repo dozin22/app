@@ -3,10 +3,7 @@
 // - 목록(좌) + 폼(우) CRUD
 // - 공용 유틸: db_shared.js 의 authFetch/esc/toast 사용
 
-import { authFetch, esc, toast } from './db_management.js';
-
-// 필요 시 여기만 수정
-const EP_WORKFLOW_TEMPLATES = '/api/workflow-templates';
+import { authFetch, esc, toast, EP_WORKFLOW_TEMPLATES } from './db_management.js';
 
 const WF = {
   loaded: false,

@@ -10,6 +10,7 @@ from calendark import bp_calendar
 from auth import bp_auth
 from user_management import bp_user_management
 from task_template_management import bp_task_management
+from workflow_template_management import bp_workflow_management
 
 def create_app():
     app = Flask(__name__)
@@ -30,6 +31,7 @@ def create_app():
     # 블루프린트 등록
     app.register_blueprint(bp_auth)
     app.register_blueprint(bp_calendar)
+    app.register_blueprint(bp_workflow_management)  
     app.register_blueprint(bp_user_management)
     app.register_blueprint(bp_task_management)
 
