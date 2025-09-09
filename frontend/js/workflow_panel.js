@@ -203,7 +203,7 @@ function populateResponsibilityDropdown() {
   const selectEl = document.getElementById("selTaskResp");
   if (!selectEl) return;
   if (!State.teamResponsibilities.length) {
-    selectEl.innerHTML = `<option value="">(권한 없음/목록 없음)</option>`;
+    selectEl.innerHTML = `<option value=""> (권한 없음/목록 없음)</option>`;
     return;
   }
   selectEl.innerHTML = State.teamResponsibilities.map(r =>
@@ -231,14 +231,13 @@ function showTaskTemplateForm(template) {
 
   document.getElementById("inpTaskId").value         = template.task_template_id ?? "";
   document.getElementById("inpTaskName").value       = template.template_name ?? "";
-  document.getElementById("inpTaskType").value       = template.task_type ?? "";
   document.getElementById("inpTaskCategory").value   = template.category ?? '';
   document.getElementById("inpTaskDesc").value       = template.description ?? '';
   document.getElementById("selTaskResp").value       = template.required_responsibility_id ?? "";
 }
 
-/* ==============
- * ===== 저장 ====
+/* ============== 
+ * ===== 저장 ==== 
  * ============== */
 
 export async function onSaveTaskTemplate() {
@@ -250,7 +249,7 @@ export async function onSaveTaskTemplate() {
 
   const payload = {
     template_name: document.getElementById("inpTaskName")?.value ?? "",
-    task_type: document.getElementById("inpTaskType")?.value ?? "",
+    
     category: document.getElementById("inpTaskCategory")?.value ?? "",
     description: document.getElementById("inpTaskDesc")?.value ?? "",
     required_responsibility_id: Number(document.getElementById("selTaskResp")?.value ?? 0) || null,

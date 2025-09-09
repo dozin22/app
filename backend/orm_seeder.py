@@ -42,13 +42,12 @@ def create_responsibility(session, name: str, team_id: int):
         session.flush()
     return r
 
-def upsert_task_template(session, tid: int, name: str, task_type: str, category: str, desc: str, req_resp_id: int | None):
+def upsert_task_template(session, tid: int, name: str, category: str, desc: str, req_resp_id: int | None):
     tt = session.get(TaskTemplate, tid)
     if not tt:
         tt = TaskTemplate(
             task_template_id=tid,
             template_name=name,
-            task_type=task_type,
             category=category,
             description=desc,
             required_responsibility_id=req_resp_id
@@ -56,7 +55,6 @@ def upsert_task_template(session, tid: int, name: str, task_type: str, category:
         session.add(tt)
     else:
         tt.template_name = name
-        tt.task_type = task_type
         tt.category = category
         tt.description = desc
         tt.required_responsibility_id = req_resp_id
@@ -133,17 +131,17 @@ def seed():
 
         # 7) task_templates 생성
         tt1 = upsert_task_template(
-            s, 101, '원자재 위해요소 기준 추가', 'Info_CRUD', 'HACCP',
+            s, 101, '원자재 위해요소 기준 추가', 'HACCP',
             '원자재 위해요소의 기준을 추가합니다.',
             haccp_resp.responsibility_id if haccp_resp else None
         )
         tt2 = upsert_task_template(
-            s, 102, '원자재 위해요소 분석', 'Analysis', 'HACCP',
+            s, 102, '원자재 위해요소 분석', 'HACCP',
             '원자재 위해요소 기준에 따라 분석을 실시하고 결과를 기록합니다.',
             haccp_resp.responsibility_id if haccp_resp else None
         )
         tt3 = upsert_task_template(
-            s, 201, '제품 자가품질검사', 'Analysis', 'Quality',
+            s, 201, '제품 자가품질검사', 'Quality',
             '완제품의 자가품질 분석을 수행합니다.',
             quality_resp.responsibility_id if quality_resp else None
         )

@@ -130,7 +130,7 @@ class TaskTemplate(Base):
     __tablename__ = "task_templates"
     task_template_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     template_name: Mapped[str] = mapped_column(String, nullable=False)
-    task_type: Mapped[str] = mapped_column(String, nullable=False)
+    
     category: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     required_responsibility_id: Mapped[Optional[int]] = mapped_column(

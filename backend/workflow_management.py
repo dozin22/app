@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -42,7 +41,6 @@ def get_task_templates():
                 {
                     "task_template_id": tt.task_template_id,
                     "template_name": tt.template_name,
-                    "task_type": tt.task_type,
                     "category": tt.category,
                     "description": tt.description,
                     "required_responsibility_id": tt.required_responsibility_id,
@@ -76,7 +74,6 @@ def update_task_template(template_id: int):
 
         # 정보 업데이트
         tt.template_name = data.get("template_name", tt.template_name)
-        tt.task_type = data.get("task_type", tt.task_type)
         tt.category = data.get("category", tt.category)
         tt.description = data.get("description", tt.description)
         
@@ -126,7 +123,7 @@ def create_task_template():
         # 새 템플릿 생성
         new_template = TaskTemplate(
             template_name=template_name,
-            task_type=data.get("task_type"),
+            
             category=data.get("category"),
             description=data.get("description"),
             required_responsibility_id=data.get("required_responsibility_id")
