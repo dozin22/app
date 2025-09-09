@@ -9,12 +9,12 @@ from orm_build import get_session, User, Team, Responsibility, TaskTemplate
 # custom decorator
 from user_management import require_db_admin
 
-bp_workflow_management = Blueprint("workflow_management", __name__, url_prefix="/api/workflow-management")
+bp_task_management = Blueprint("task_management", __name__, url_prefix="/api/task-management")
 
 
 # ─────────────────────────────────────────────────────────────
 # 업무 정보 관리 (팀장 또는 DT전문가)
-@bp_workflow_management.get("/task-templates")
+@bp_task_management.get("/task-templates")
 @require_db_admin  # 팀장 또는 DT전문가
 def get_task_templates():
     """사용자 팀에 매핑된 TaskTemplate 목록과 Responsibility 목록을 반환"""
@@ -47,7 +47,7 @@ def get_task_templates():
             ]
         })
 
-@bp_workflow_management.put("/task-templates/<int:template_id>")
+@bp_task_management.put("/task-templates/<int:template_id>")
 @require_db_admin  # 팀장 또는 DT전문가
 def update_task_template(template_id: int):
     """TaskTemplate 정보를 업데이트"""
@@ -77,7 +77,7 @@ def update_task_template(template_id: int):
         return jsonify({"message": "업무 템플릿이 업데이트되었습니다."})
 
 
-@bp_workflow_management.post("/task-templates")
+@bp_task_management.post("/task-templates")
 @require_db_admin  # 팀장 또는 DT전문가
 def create_task_template():
     """새로운 TaskTemplate을 생성하고 현재 사용자의 팀에 매핑"""
@@ -126,7 +126,7 @@ def create_task_template():
         }), 201
 
 
-@bp_workflow_management.delete("/task-templates/<int:template_id>")
+@bp_task_management.delete("/task-templates/<int:template_id>")
 @require_db_admin  # 팀장 또는 DT전문가
 def delete_task_template(template_id: int):
     """TaskTemplate과 현재 사용자 팀의 매핑을 제거. 다른 팀에서도 사용하지 않으면 템플릿 자체를 삭제."""

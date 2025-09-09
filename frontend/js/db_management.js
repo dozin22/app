@@ -2,7 +2,7 @@
 
 // 각 패널의 초기화 함수를 가져옵니다.
 import { initUserPanel, loadTeamMembers } from './user_panel.js';
-import { initWorkflowPanel, loadTaskTemplates } from './workflow_panel.js';
+import { initWorkflowPanel, loadTaskTemplates } from './task_template_panel.js';
 
 // API 엔드포인트와 공용 상수를 정의하고 내보냅니다.
 import { API_URL } from './config.js';
@@ -14,7 +14,7 @@ export const TEAM_KEY  = "team";
 export const EMAIL_KEY = "email";
 
 export const EP_TEAM_MEMBERS   = `${API_URL}/user-management/team-members`;
-export const EP_TASK_TEMPLATES = `${API_URL}/workflow-management/task-templates`;
+export const EP_TASK_TEMPLATES = `${API_URL}/task-management/task-templates`;
 export const EP_TEAMS          = `${API_URL}/db-management/teams`;
 export const EP_ME             = `${API_URL}/user-management/me`;
 

@@ -58,10 +58,10 @@ def upsert_task_template(session, tid: int, name: str, category: str, desc: str 
         tt.description = desc
     return tt
 
-def upsert_workflow_template(session, wtid: int, name: str, desc: str):
+def upsert_workflow_template(session, wtid: int, name: str, desc: str, team_id: int | None = None):
     wt = session.get(WorkflowTemplate, wtid)
     if not wt:
-        wt = WorkflowTemplate(workflow_template_id=wtid, template_name=name, description=desc)
+        wt = WorkflowTemplate(workflow_template_id=wtid, template_name=name, description=desc, team_id=team_id)
         session.add(wt)
     else:
         wt.template_name = name
@@ -146,7 +146,7 @@ def seed():
 
         # 8) workflow_templates
         wt = upsert_workflow_template(
-            s, 1, '용기면 신제품 생산', '용기면 신제품 출시 준비와 관련된 워크플로우'
+            s, 1, '용기면 신제품 생산', '용기면 신제품 출시 준비와 관련된 워크플로우', team_id=1
         )
 
         # 9) workflow_template_definitions (1→101 선행, 102는 101 의존)  # :contentReference[oaicite:4]{index=4}

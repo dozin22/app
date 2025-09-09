@@ -75,6 +75,9 @@ class Team(Base):
     task_templates: Mapped[list["TaskTemplate"]] = relationship(
         back_populates="teams", secondary="task_template_team_mappings"
     )
+    workflow_templates: Mapped[list["WorkflowTemplate"]] = relationship(
+        back_populates="teams", secondary="workflow_template_team_mappings"
+    )
 
 class Responsibility(Base):
     __tablename__ = "responsibilities"
@@ -180,6 +183,7 @@ class WorkflowTemplate(Base):
     workflow_template_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     template_name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
 
     definitions: Mapped[list["WorkflowTemplateDefinition"]] = relationship(back_populates="workflow_template")
     workflows: Mapped[list["Workflow"]] = relationship(back_populates="workflow_template")
@@ -249,6 +253,16 @@ class TaskDependency(Base):
 
     upstream_task: Mapped["Task"] = relationship(foreign_keys=[upstream_task_id], back_populates="downstream_dependencies")
     downstream_task: Mapped["Task"] = relationship(foreign_keys=[downstream_task_id], back_populates="upstream_dependencies")
+
+class WorkflowtemplateTeamMapping(Base):
+    __tablename__ = "workflow_template_team_mappings"
+    workflow_template_id: Mapped[int] = mapped_column(ForeignKey("workflow_templates.workflow_template_id", ondelete="CASCADE"), primary_key=True)
+    team_id: Mapped[int] = mapped_column(ForeignKey("teams.team_id", ondelete="CASCADE"), primary_key=True)
+
+        # WorkflowTemplate
+    teams: Mapped[list["Team"]] = relationship(
+        back_populates="workflow_templates", secondary="workflow_template_team_mappings"
+    )
 
 
 # ─────────────────────────────────────────────────────────────
