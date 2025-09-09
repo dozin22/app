@@ -146,7 +146,7 @@ def seed():
 
         # 8) workflow_templates
         wt = upsert_workflow_template(
-            s, 1, '용기면 신제품 생산', '용기면 신제품 출시 준비와 관련된 워크플로우', team_id=1
+            s, 1, '용기면 신제품 생산', '용기면 신제품 출시 준비와 관련된 워크플로우'
         )
 
         # 9) workflow_template_definitions (1→101 선행, 102는 101 의존)  # :contentReference[oaicite:4]{index=4}

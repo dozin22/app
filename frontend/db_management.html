@@ -166,6 +166,7 @@
         <div class="form-group"><label for="inpWorkflowDesc">설명</label><textarea id="inpWorkflowDesc" rows="4"></textarea></div>
         <div class="actions">
           <button class="btn" id="btnDeleteWorkflowTemplate">삭제</button>
+          <button class="btn" id="btnDuplicateWorkflowTemplate">복제</button>
           <button class="btn primary" id="btnSaveWorkflowTemplate" type="button">저장</button>
         </div>
       </div>
@@ -203,7 +204,10 @@
 
     <!-- 우: 그래프 카드 -->
     <aside class="workflow-graph-pane card">
-      <h3>흐름도</h3>
+      <div class="graph-head">
+        <h3>흐름도</h3>
+        <button id="btnGraphExpand" class="btn btn-ghost icon-btn" title="크게 보기">⤢</button>
+      </div>
       <div id="workflowGraph" class="graph-canvas"></div>
     </aside>
   </div>
@@ -217,5 +221,12 @@
 
 <script type="module" src="./js/db_management.js"></script>
 <script type="module" src="./js/workflow_template_panel.js"></script>
+<div id="graphModal" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <button id="btnGraphClose" class="modal-close" aria-label="닫기">×</button>
+    <div id="workflowGraphModal" class="graph-canvas" style="height:70vh;"></div>
+  </div>
+</div>
 </body>
 </html>

@@ -1,461 +1,253 @@
-/* index의 라이트 톤과 통일: 최소 보조 스타일만 */
+/* =========================================================
+   DB Management (Light tone, minimal helpers)
+   ========================================================= */
 
-.muted { color: #778; font-size: 12px; }
+/* --- Basics & Helpers --- */
+.muted { color:#778; font-size:12px; }
 .btn { padding:8px 12px; border:1px solid #d7dbe6; background:#fff; border-radius:8px; cursor:pointer; }
 .btn:hover { background:#f7f9ff; }
 .btn.primary { background:#4c8dff; color:#fff; border-color:#4c8dff; }
 .btn.btn-ghost { background:transparent; }
 
 .userbox { display:flex; align-items:center; }
+
 .card {
   background:#fff; border:1px solid #e3e6ef; border-radius:12px;
   padding:16px; margin-bottom:16px; box-shadow:0 4px 12px rgba(0,0,0,.04);
 }
 .card h3 { margin:0 0 8px; }
 
-.dbm-wrap { display:grid; grid-template-columns: 220px 1fr; gap:16px; }
+.dbm-wrap { display:grid; grid-template-columns:220px 1fr; gap:16px; }
+.dbm-content .panel.hidden { display:none; }
 
-/* 좌측 탭 */
+.kv { display:grid; grid-template-columns:120px 1fr; gap:8px 10px; }
+.kv > div:nth-child(odd) { color:#778; }
+
+/* --- Left tabs --- */
 .v-tabs { display:flex; flex-direction:column; gap:8px; }
 .v-tab {
   display:flex; align-items:center; gap:8px;
-  background:#fff; border:1px solid #e3e6ef; border-radius:10px; padding:10px 12px; cursor:pointer;
+  background:#fff; border:1px solid #e3e6ef; border-radius:10px;
+  padding:10px 12px; cursor:pointer;
 }
-.v-tab span {
+.v-tab span{
   width:22px; height:22px; display:inline-grid; place-items:center;
   border-radius:50%; background:#eef3ff; color:#4066c9; font-size:12px;
   border:1px solid #d3ddff;
 }
-.v-tab em.badge-lock { margin-left:auto; font-size:11px; color:#946; background:#f8eff8; border:1px dashed #d8c; padding:2px 6px; border-radius:999px; }
+.v-tab em.badge-lock{
+  margin-left:auto; font-size:11px; color:#946; background:#f8eff8;
+  border:1px dashed #d8c; padding:2px 6px; border-radius:999px;
+}
 .v-tab.active { outline:2px solid #dbe6ff; }
 
-.dbm-content .panel.hidden { display:none; }
-.kv { display:grid; grid-template-columns:120px 1fr; gap:8px 10px; }
-.kv > div:nth-child(odd) { color:#778; }
-
-/* 표 */
+/* --- Generic tables --- */
 .table-wrap { overflow:auto; border:1px solid #e3e6ef; border-radius:10px; }
 .table { width:100%; border-collapse:collapse; min-width:640px; }
 .table th, .table td { padding:10px 12px; border-bottom:1px solid #eef1f6; text-align:left; }
 .table thead th { background:#f7f9ff; }
 .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
+.col-num { width:40px; text-align:center; color:#778; }
 
 .tree-area {
-  min-height:240px; border:1px dashed #ccd3e4; border-radius:10px; display:grid; place-items:center; color:#778;
+  min-height:240px; border:1px dashed #ccd3e4; border-radius:10px;
+  display:grid; place-items:center; color:#778;
 }
 
-/* 접근가드 */
+/* Access guard */
 .guard { margin-bottom:12px; }
 .guard-box { border:1px dashed #e6b8b8; background:#fff5f5; padding:10px 12px; border-radius:10px; }
 
-/* 반응형 */
-@media (max-width: 980px){
-  .dbm-wrap { grid-template-columns: 1fr; }
+/* Responsive: sidebar tabs row */
+@media (max-width:980px){
+  .dbm-wrap { grid-template-columns:1fr; }
   .v-tabs { flex-direction:row; overflow:auto; }
   .v-tab { white-space:nowrap; }
 }
 
-/* === 이메일 인라인 편집 전용 오버라이드 (맨 아래 추가) === */
-
-/* 이메일 셀 레이아웃 살짝 정리 */
-#kvEmail {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
+/* --- Inline email edit --- */
+#kvEmail { display:inline-flex; align-items:center; gap:2px; }
+#kvEmail #inpEmailLocal{
+  width:100px !important; max-width:160px !important;
+  box-sizing:border-box; padding:1px 3px;
 }
+.email-domain { color:inherit; }
+#kvEmail.editing-mode .email-domain{ color:#9aa2b1; opacity:.9; font-weight:600; cursor:default; }
 
-/* 로컬파트 입력칸 폭 줄이기 (inline 스타일 이겨야 해서 !important) */
-#kvEmail #inpEmailLocal {
-  width: 100px !important;
-  max-width: 160px !important;
-  box-sizing: border-box;
-  padding: 1px  3px;
+/* =========================================================
+   Task Template Panel (2-column)
+   ========================================================= */
+.task-editor-layout{
+  display:grid; grid-template-columns:500px 1fr; gap:16px; height:65vh; align-items:stretch;
 }
-
-/* 도메인은 연회색 + 편집 불가 느낌 */
-/* 평소에는 일반 텍스트 색상 */
-.email-domain {
-  color: inherit;
-}
-
-/* 수정 모드에서만 회색으로 */
-#kvEmail.editing-mode .email-domain {
-  color: #9aa2b1;        /* 연회색 톤 */
-  opacity: 0.9;
-  font-weight: 600;
-  cursor: default;       /* 마우스 올려도 편집 아님 느낌 */
-}
-
-/* index의 라이트 톤과 통일: 최소 보조 스타일만 */
-
-.muted { color: #778; font-size: 12px; }
-.btn { padding:8px 12px; border:1px solid #d7dbe6; background:#fff; border-radius:8px; cursor:pointer; }
-.btn:hover { background:#f7f9ff; }
-.btn.primary { background:#4c8dff; color:#fff; border-color:#4c8dff; }
-.btn.btn-ghost { background:transparent; }
-
-.userbox { display:flex; align-items:center; }
-.card {
+.task-list-pane{
   background:#fff; border:1px solid #e3e6ef; border-radius:12px;
-  padding:16px; margin-bottom:16px; box-shadow:0 4px 12px rgba(0,0,0,.04);
+  padding:12px; display:flex; flex-direction:column; height:100%; overflow:hidden;
 }
-.card h3 { margin:0 0 8px; }
-
-.dbm-wrap { display:grid; grid-template-columns: 220px 1fr; gap:16px; }
-
-/* 좌측 탭 */
-.v-tabs { display:flex; flex-direction:column; gap:8px; }
-.v-tab {
-  display:flex; align-items:center; gap:8px;
-  background:#fff; border:1px solid #e3e6ef; border-radius:10px; padding:10px 12px; cursor:pointer;
+.list-header{
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:20px; margin-bottom:8px; flex-shrink:0;
 }
-.v-tab span {
-  width:22px; height:22px; display:inline-grid; place-items:center;
-  border-radius:50%; background:#eef3ff; color:#4066c9; font-size:12px;
-  border:1px solid #d3ddff;
+.list-header h4{ margin:0; }
+.task-list-wrap{
+  flex:1; overflow-y:auto; border:1px solid #e3e6ef; border-radius:8px; min-height:0;
 }
-.v-tab em.badge-lock { margin-left:auto; font-size:11px; color:#946; background:#f8eff8; border:1px dashed #d8c; padding:2px 6px; border-radius:999px; }
-.v-tab.active { outline:2px solid #dbe6ff; }
+.task-table{ width:100%; border-collapse:separate; border-spacing:0; }
+.task-table th, .task-table td{ padding:8px 10px; border-bottom:1px solid #eef1f6; text-align:left; }
+.task-table thead th{ background:#f7f9ff; font-weight:600; position:sticky; top:0; z-index:2; }
+.task-table tr{ cursor:pointer; }
+.task-table tr:hover{ background:#f7f9ff; }
+.task-table tr.active{ background:#eef3ff; }
 
-.dbm-content .panel.hidden { display:none; }
-.kv { display:grid; grid-template-columns:120px 1fr; gap:8px 10px; }
-.kv > div:nth-child(odd) { color:#778; }
+.task-form-pane{ height:98.5%; }
+.task-form-pane .form-group{ display:flex; flex-direction:column; margin-bottom:12px; }
+.task-form-pane .form-group label{ margin-bottom:4px; color:#556; font-size:14px; }
+.task-form-pane .form-group input,
+.task-form-pane .form-group textarea,
+.task-form-pane .form-group select{
+  width:100%; padding:6px 8px; border-radius:6px; border:1px solid #ccc; box-sizing:border-box;
+}
+.task-form-pane .placeholder-text{ display:grid; place-items:center; height:100%; color:#889; }
+.task-form-pane .actions{ margin-top:20px; }
 
-/* 표 */
-.table-wrap { overflow:auto; border:1px solid #e3e6ef; border-radius:10px; }
-.table { width:100%; border-collapse:collapse; min-width:640px; }
-.table th, .table td { padding:10px 12px; border-bottom:1px solid #eef1f6; text-align:left; }
-.table thead th { background:#f7f9ff; }
-.actions { display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
-
-.tree-area {
-  min-height:240px; border:1px dashed #ccd3e4; border-radius:10px; display:grid; place-items:center; color:#778;
+@media (max-width:980px){
+  .task-editor-layout{ grid-template-columns:1fr; height:auto; }
+  .task-form-pane{ height:auto; }
 }
 
-/* 접근가드 */
-.guard { margin-bottom:12px; }
-.guard-box { border:1px dashed #e6b8b8; background:#fff5f5; padding:10px 12px; border-radius:10px; }
-
-/* 반응형 */
-@media (max-width: 980px){
-  .dbm-wrap { grid-template-columns: 1fr; }
-  .v-tabs { flex-direction:row; overflow:auto; }
-  .v-tab { white-space:nowrap; }
+/* =========================================================
+   Workflow Template Panel (3-column: List / Form+Defs / Graph)
+   ========================================================= */
+.workflow-editor-layout{
+  display:grid;
+  grid-template-columns:320px 520px minmax(360px, 1fr);
+  gap:16px; height:65vh; align-items:stretch;
 }
 
-/* === 이메일 인라인 편집 전용 오버라이드 (맨 아래 추가) === */
+/* Left: List */
+.workflow-list-pane{
+  background:#fff; border:1px solid #e3e6ef; border-radius:12px;
+  padding:12px; display:flex; flex-direction:column; height:100%; overflow:hidden;
+}
+.workflow-list-pane .list-header{
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:20px; margin-bottom:8px; flex-shrink:0;
+}
+.workflow-list-pane .list-header h4{ margin:0; }
+.workflow-list-wrap{
+  flex:1; overflow-y:auto; border:1px solid #e3e6ef; border-radius:8px; min-height:0;
+}
+.workflow-table{
+  width:100%; border-collapse:separate; border-spacing:0; min-width:420px;
+}
+.workflow-table th, .workflow-table td{
+  padding:8px 10px; border-bottom:1px solid #eef1f6; font-size:14px; text-align:left;
+}
+.workflow-table thead th{
+  background:#f7f9ff; font-weight:600; position:sticky; top:0; z-index:2;
+}
+.workflow-table tr{ cursor:pointer; }
+.workflow-table tr:hover{ background:#f7f9ff; }
+.workflow-table tr.active{ background:#eef3ff; }
 
-/* 이메일 셀 레이아웃 살짝 정리 */
-#kvEmail {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
+/* Middle: Form + Definitions */
+.workflow-form-pane{
+  background:#fff; border:1px solid #e3e6ef; border-radius:12px;
+  padding:16px; display:flex; flex-direction:column; height:98.5%;
+  min-width:0; /* <<< grid 아이템 확장 방지(버튼 잘림 방지 1) */
 }
-
-/* 로컬파트 입력칸 폭 줄이기 (inline 스타일 이겨야 해서 !important) */
-#kvEmail #inpEmailLocal {
-  width: 100px !important;
-  max-width: 160px !important;
-  box-sizing: border-box;
-  padding: 1px  3px;
-}
-
-/* 도메인은 연회색 + 편집 불가 느낌 */
-/* 평소에는 일반 텍스트 색상 */
-.email-domain {
-  color: inherit;
-}
-
-/* 수정 모드에서만 회색으로 */
-#kvEmail.editing-mode .email-domain {
-  color: #9aa2b1;        /* 연회색 톤 */
-  opacity: 0.9;
-  font-weight: 600;
-  cursor: default;       /* 마우스 올려도 편집 아님 느낌 */
-}
-
-/* === 업무 정보 패널 === */
-.task-editor-layout {
-  display: grid;
-  /* [수정] 목록 너비 확장 */
-  grid-template-columns: 500px 1fr;
-  gap: 16px;
-  /* [수정] 목록 높이 제한 */
-  height: 65vh;
-}
-
-.task-list-pane {
-  background: #fff;
-  border: 1px solid #e3e6ef;
-  border-radius: 12px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  /* [추가] 넘치는 내용 스크롤 처리 */
-  height: 100%;
-  overflow: hidden;
-}
-
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 20px;
-  align-items: center;
-  margin-bottom: 8px;
-  /* [추가] 헤더는 줄어들지 않도록 */
-  flex-shrink: 0;
-}
-.list-header h4 { margin: 0; }
-
-/* [수정] task-list를 table-wrap으로 변경 */
-.task-list-wrap {
-  overflow-y: auto;
-  border: 1px solid #e3e6ef;
-  border-radius: 8px;
-}
-
-/* [추가] 업무 템플릿 목록 테이블 스타일 */
-.task-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.task-table th, .task-table td {
-  padding: 8px 10px;
-  text-align: left;
-  border-bottom: 1px solid #eef1f6;
-}
-.task-table th {
-  background-color: #f7f9ff;
-  font-weight: 600;
-  font-size: 14px;
-}
-.task-table tr {
-  cursor: pointer;
-}
-.task-table tr:hover {
-  background-color: #f7f9ff;
-}
-.task-table tr.active {
-  background-color: #eef3ff;
-}
-.task-table .col-num {
-  width: 40px;
-  text-align: center;
-  color: #778;
-}
-
-
-.task-form-pane .form-group { display: flex; flex-direction: column; margin-bottom: 12px; height: 100%;}
-.task-form-pane .form-group label { margin-bottom: 4px; color: #556; font-size: 14px; }
-.task-form-pane .form-group input, .task-form-pane .form-group textarea, .task-form-pane .form-group select { width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
-.task-form-pane .placeholder-text { display: grid; place-items: center; height: 100%; color: #889; }
-.task-form-pane .actions { margin-top: 20px; }
-
-/* === 균등 높이 & 헤더 고정 패치 (기존 스타일 보존) === */
-
-/* 부모 그리드가 자식들을 꽉 채우게 */
-.task-editor-layout {
-  height: 60vh;            /* 이미 있을 수 있음 - 재확인용 */
-  align-items: stretch;
-}
-
-/* 왼쪽/오른쪽 패널 모두 프레임 높이 채우기 */
-
-.task-form-pane {
-  height: 98.5%;
-}
-
-/* 왼쪽: 목록 영역만 스크롤(헤더는 고정) */
-.task-list-wrap {
-  flex: 1;                 /* 헤더 아래 남은 높이 전부 차지 */
-  overflow-y: auto;
-  min-height: 0;           /* flex 컨테이너에서 오버플로 방지 */
-}
-
-/* 목록 테이블 thead 고정 */
-.task-table {
-  border-collapse: separate;  /* sticky시 일부 브라우저 안정화 */
-}
-.task-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: #f7f9ff;        /* 기존 헤더 배경과 동일 톤 */
-}
-
-.dtlistTTitle {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-
-/* === 업무 흐름도 패널 (task template과 동일 디자인) === */
-
-.workflow-editor-layout {
-  display: grid;
-  grid-template-columns: 500px 1fr; /* 목록 500px, 폼 1fr */
-  gap: 16px;
-  height: 65vh;
-  align-items: stretch;
-}
-
-.workflow-list-pane {
-  background: #fff;
-  border: 1px solid #e3e6ef;
-  border-radius: 12px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-}
-
-.workflow-list-pane .list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 20px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-.workflow-list-pane .list-header h4 { margin: 0; }
-
-.workflow-list-wrap {
-  flex: 1;                 /* 헤더 아래 남은 높이 전부 */
-  overflow-y: auto;
-  border: 1px solid #e3e6ef;
-  border-radius: 8px;
-  min-height: 0;           /* flex overflow 안정화 */
-}
-
-.workflow-table {
-  width: 100%;
-  border-collapse: separate; /* sticky 안정화 */
-  border-spacing: 0;
-  min-width: 420px;
-}
-.workflow-table th,
-.workflow-table td {
-  padding: 8px 10px;
-  text-align: left;
-  border-bottom: 1px solid #eef1f6;
-  font-size: 14px;
-}
-.workflow-table thead th {
-  background-color: #f7f9ff;
-  font-weight: 600;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-.workflow-table tr { cursor: pointer; }
-.workflow-table tr:hover { background-color: #f7f9ff; }
-.workflow-table tr.active { background-color: #eef3ff; }
-.workflow-table .col-num {
-  width: 40px;
-  text-align: center;
-  color: #778;
-}
-
-.workflow-form-pane {
-  background: #fff;
-  border: 1px solid #e3e6ef;
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  height: 98.5%;
-}
-
-.workflow-form-pane h3 { margin: 0 0 10px; }
-
-.workflow-form-pane .form-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 12px;
-}
-.workflow-form-pane .form-group label {
-  margin-bottom: 4px;
-  color: #556;
-  font-size: 14px;
-}
+.workflow-form-pane h3{ margin:0 0 10px; }
+.workflow-form-pane .form-group{ display:flex; flex-direction:column; margin-bottom:12px; }
+.workflow-form-pane .form-group label{ margin-bottom:4px; color:#556; font-size:14px; }
 .workflow-form-pane .form-group input,
 .workflow-form-pane .form-group textarea,
-.workflow-form-pane .form-group select {
-  width: 100%;
-  padding: 6px 8px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  box-sizing: border-box;
+.workflow-form-pane .form-group select{
+  width:80%; padding:6px 8px; border-radius:6px; border:1px solid #ccc; box-sizing:border-box;
+}
+.workflow-form-pane .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:20px; }
+#workflowFormPlaceholder{ display:grid; place-items:center; height:100%; color:#889; }
+
+/* --- Definitions (inside form) --- */
+.wf-defs{ margin-top:16px; }
+.wf-defs .sub{ margin:0 0 8px; font-size:16px; }
+
+/* 줄임/타이포 */
+.wf-defs, .wf-defs label, .wf-defs select, #tblDefs th, #tblDefs td {
+  font-size:13px; line-height:1.25;
 }
 
-.workflow-form-pane .actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 20px;
+/* '새 연결 추가' 4열 그리드 (버튼 안 잘리게) */
+.wf-defs .defs-add{
+  display:grid;
+  grid-template-columns: 80px minmax(120px,1fr) minmax(120px,1fr) 68px; /* 라벨 / 업무 / 선행 / 버튼 */
+  gap:8px 10px; align-items:center;
+}
+.wf-defs .defs-add select{ height:32px; padding:3px 8px; border-radius:6px; border:1px solid #ccd2e0; min-width:0; }
+.wf-defs .defs-add .btn{ justify-self:end; min-width:64px; padding:6px 10px; }
+
+/* 정의 테이블: 폼 카드 폭에 맞춰 수축되도록 (버튼 잘림 방지 2) */
+.wf-defs .table-wrap{ margin-top:8px; max-height:320px; overflow:auto; }
+#tblDefs{ width:100%; min-width:0; table-layout:fixed; } /* <<< generic min-width:640px 무력화 */
+#tblDefs th, #tblDefs td{ padding:8px 10px; }
+#tblDefs td{ word-break:break-word; overflow-wrap:anywhere; } /* 긴 한글/영문 줄바꿈 허용 */
+
+/* ID/작업 열 폭 고정, 본문 열은 자동 */
+#tblDefs th:first-child, #tblDefs td:first-child{
+  width:1px; min-width:1px; padding-left:1px; padding-right:1px; text-align:center; color:#778;
+}
+#tblDefs th:nth-child(2), #tblDefs td:nth-child(2){
+  width:150px; min-width:100px; padding-left:6px; padding-right:6px;
+}
+#tblDefs th:nth-child(3), #tblDefs td:nth-child(3){
+  width:150px; min-width:120px; padding-left:6px; padding-right:6px;
 }
 
-#workflowFormPlaceholder {
-  display: grid;
-  place-items: center;
-  height: 100%;
-  color: #889;
+#tblDefs th:last-child, #tblDefs td:last-child{
+  width:50px; white-space:nowrap; /* 버튼 줄바꿈 금지 */
 }
 
-/* 반응형: workflow도 task와 동일 처리 */
-@media (max-width: 980px){
-  .workflow-editor-layout {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-  .workflow-form-pane { height: auto; }
+/* Right: Graph */
+.workflow-graph-pane{
+  background:#fff; border:1px solid #e3e6ef; border-radius:12px;
+  padding:16px; display:flex; flex-direction:column; height:98.5%;
+  min-width:0; /* 그래프 카드도 과확장 방지 */
 }
-/* === 업무 흐름도 3열 레이아웃 오버라이드 === */
-.workflow-editor-layout {
-  display: grid;
-  grid-template-columns: 320px 520px minmax(360px, 1fr); /* 목록 / 편집 / 그래프 */
-  gap: 16px;
-  height: 65vh;
-  align-items: stretch;
+.graph-canvas{
+  width:100%; height:100%; border:1px solid #e3e6ef; border-radius:8px; overflow:hidden;
 }
 
-/* 우측 그래프 카드 */
-.workflow-graph-pane {
-  background: #fff;
-  border: 1px solid #e3e6ef;
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  height: 98.5%;
+/* Responsive for workflow panel */
+@media (min-width:1100px){
+  .workflow-editor-layout{ grid-template-columns:320px 560px minmax(360px, 1fr); } /* 가운데 여유 */
 }
-.graph-canvas {
-  width: 100%;
-  height: 100%;
-  border: 1px solid #e3e6ef;
-  border-radius: 8px;
-  /* SVG가 꽉 차도록 */
-  overflow: hidden;
+@media (max-width:1200px){
+  .workflow-editor-layout{ grid-template-columns:360px 1fr; }
+  .workflow-graph-pane{ grid-column:1 / -1; height:360px; }
+  .graph-canvas{ height:calc(360px - 32px); }
+}
+@media (max-width:980px){
+  .workflow-editor-layout{ grid-template-columns:1fr; height:auto; }
+  .workflow-form-pane, .workflow-graph-pane{ height:auto; }
+  .graph-canvas{ height:320px; }
 }
 
-/* 정의 표 영역(편집 카드 내부) */
-.wf-defs { margin-top: 16px; }
-.wf-defs .sub { margin: 0 0 8px; font-size: 16px; }
-.wf-defs .defs-add {
-  grid-template-columns: 120px 1fr 1fr 110px; /* 라벨 / 업무 / 선행 / 버튼 */
-  align-items: center;
-}
+/* Misc */
+.dtlistTTitle{ font-size:20px; font-weight:600; margin-bottom:12px; }
+/* =========================================================
+   Modal (common)
+   ========================================================= */
+.modal.hidden{display:none}
+.modal-close{position:absolute;top:8px;right:10px;border:0;background:transparent;font-size:28px;line-height:1;cursor:pointer}
 
-/* 반응형: 너비 줄어들면 2열→1열로 자연스런 다운그레이드 */
-@media (max-width: 1200px) {
-  .workflow-editor-layout { grid-template-columns: 360px 1fr; }
-  .workflow-graph-pane { grid-column: 1 / -1; height: 360px; }
-  .graph-canvas { height: calc(360px - 32px); }
+.graph-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.icon-btn{width:32px;height:32px;display:grid;place-items:center;padding:0;font-size:16px}
+
+.modal.hidden{display:none}
+.modal{position:fixed;inset:0;z-index:60}
+.modal-backdrop{position:absolute;inset:0;background:rgba(15,23,42,.35);backdrop-filter:blur(2px)}
+.modal-content{
+  position:relative;margin:6vh auto 0;width:min(1100px,92vw);
+  background:#fff;border:1px solid #e3e6ef;border-radius:14px;padding:16px;
+  box-shadow:0 8px 40px rgba(0,0,0,.18);
 }
-@media (max-width: 980px) {
-  .workflow-editor-layout { grid-template-columns: 1fr; height: auto; }
-  .workflow-graph-pane { height: auto; }
-  .graph-canvas { height: 320px; }
-}
+.modal-close{position:absolute;top:8px;right:10px;border:0;background:transparent;font-size:28px;line-height:1;cursor:pointer}
