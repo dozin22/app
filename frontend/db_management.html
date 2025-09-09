@@ -35,8 +35,8 @@
       <nav class="v-tabs">
         <button class="v-tab active" data-tab="user" id="tabUser"><span>1</span> 유저 정보</button>
         <button class="v-tab" data-tab="dt" id="tabDT"><span>2</span> DT 전문가 선임</button>
-        <button class="v-tab" data-tab="work" id="tabWork"><span>3</span> 업무 정보</button>
-        <button class="v-tab" data-tab="tree" id="tabTree"><span>4</span> 업무 트리</button>
+        <button class="v-tab" data-tab="work" id="tabWork"><span>3</span> 업무 서식</button>
+        <button class="v-tab" data-tab="tree" id="tabTree"><span>4</span> 업무 흐름도</button>
       </nav>
 
       <section class="dbm-content" style="width: 800px;">
@@ -96,7 +96,7 @@
             <div class="work-editor-layout">
                 <div class="work-list-pane">
                     <div class="list-header">
-                        <h4>업무 템플릿 목록</h4>
+                        <h4>업무 서식 목록</h4>
                         <button class="btn btn-ghost" id="btnNewTaskTemplate">+</button>
                     </div>
                     <div class="task-list-wrap">
@@ -113,14 +113,14 @@
                     </div>
                 </div>
                 <div class="work-form-pane card">
-                    <h3 id="taskFormTitle">업무 템플릿 편집</h3>
+                    <h3 id="taskFormTitle">업무 서식 편집</h3>
                     <div id="taskForm" class="hidden">
                         <input type="hidden" id="inpTaskId">
-                        <div class="form-group"><label for="inpTaskName">템플릿 이름</label><input type="text" id="inpTaskName"></div>
+                        <div class="form-group"><label for="inpTaskName">서식 이름</label><input type="text" id="inpTaskName"></div>
                         
                         <div class="form-group"><label for="inpTaskCategory">카테고리</label><input type="text" id="inpTaskCategory" placeholder="예: HACCP, Quality"></div>
                         <div class="form-group"><label for="inpTaskDesc">설명</label><textarea id="inpTaskDesc" rows="4"></textarea></div>
-                        <div class="form-group"><label for="selTaskResp">담당 책임</label><select id="selTaskResp"></select></div>
+                        
                         <div class="actions">
                             <button class="btn" id="btnDeleteTaskTemplate">삭제</button>
                             <button class="btn" id="btnCopyTaskTemplate">복사</button>
@@ -134,11 +134,11 @@
 
         <div class="panel hidden" id="panel-tree">
           <div class="card">
-            <h3>업무 트리</h3>
-            <div class="tree-area">트리 뷰는 추후 연결될 예정이에요 :)</div>
+            <h3>업무 흐름도</h3>
+            <div class="tree-area">흐름도는 추후 연결될 예정이에요 :)</div>
             <div class="actions">
-              <button class="btn" id="btnTreeReload">트리 불러오기</button>
-              <button class="btn primary" id="btnTreeNew">새 트리 생성</button>
+              <button class="btn" id="btnTreeReload">흐름도 불러오기</button>
+              <button class="btn primary" id="btnTreeNew">새 흐름도 생성</button>
             </div>
           </div>
         </div>

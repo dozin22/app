@@ -43,11 +43,7 @@ def get_task_templates():
                     "template_name": tt.template_name,
                     "category": tt.category,
                     "description": tt.description,
-                    "required_responsibility_id": tt.required_responsibility_id,
                 } for tt in task_templates
-            ],
-            "responsibilities": [
-                {"responsibility_id": r.responsibility_id, "responsibility_name": r.responsibility_name} for r in responsibilities
             ]
         })
 
@@ -77,17 +73,6 @@ def update_task_template(template_id: int):
         tt.category = data.get("category", tt.category)
         tt.description = data.get("description", tt.description)
         
-        # required_responsibility_id 업데이트 시, 해당 책임이 사용자 팀 소속인지 확인
-        new_resp_id = data.get("required_responsibility_id")
-        if new_resp_id:
-            resp = s.get(Responsibility, new_resp_id)
-            if not resp or resp.team_id != current_user.team_id:
-                return jsonify({"message": "유효하지 않은 담당 책임입니다."}), 400
-            tt.required_responsibility_id = new_resp_id
-        else:
-            tt.required_responsibility_id = None
-
-
         s.commit()
         return jsonify({"message": "업무 템플릿이 업데이트되었습니다."})
 
@@ -126,7 +111,6 @@ def create_task_template():
             
             category=data.get("category"),
             description=data.get("description"),
-            required_responsibility_id=data.get("required_responsibility_id")
         )
         
         # 생성한 템플릿을 현재 사용자의 팀에 매핑

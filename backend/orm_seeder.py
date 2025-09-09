@@ -42,22 +42,20 @@ def create_responsibility(session, name: str, team_id: int):
         session.flush()
     return r
 
-def upsert_task_template(session, tid: int, name: str, category: str, desc: str, req_resp_id: int | None):
+def upsert_task_template(session, tid: int, name: str, category: str, desc: str | None):
     tt = session.get(TaskTemplate, tid)
     if not tt:
         tt = TaskTemplate(
             task_template_id=tid,
             template_name=name,
             category=category,
-            description=desc,
-            required_responsibility_id=req_resp_id
+            description=desc
         )
         session.add(tt)
     else:
         tt.template_name = name
         tt.category = category
         tt.description = desc
-        tt.required_responsibility_id = req_resp_id
     return tt
 
 def upsert_workflow_template(session, wtid: int, name: str, desc: str):
@@ -125,25 +123,22 @@ def seed():
         if resp2 and resp2 not in u.responsibilities:
             u.responsibilities.append(resp2)
 
-        # 6) TaskTemplate 생성에 필요한 Responsibility 객체 미리 조회
-        haccp_resp = s.query(Responsibility).filter_by(responsibility_name='HACCP 담당', team_id=qc_team.team_id).first()
-        quality_resp = s.query(Responsibility).filter_by(responsibility_name='분석실 관리', team_id=qc_team.team_id).first()
 
         # 7) task_templates 생성
         tt1 = upsert_task_template(
             s, 101, '원자재 위해요소 기준 추가', 'HACCP',
             '원자재 위해요소의 기준을 추가합니다.',
-            haccp_resp.responsibility_id if haccp_resp else None
+            
         )
         tt2 = upsert_task_template(
             s, 102, '원자재 위해요소 분석', 'HACCP',
             '원자재 위해요소 기준에 따라 분석을 실시하고 결과를 기록합니다.',
-            haccp_resp.responsibility_id if haccp_resp else None
+            
         )
         tt3 = upsert_task_template(
             s, 201, '제품 자가품질검사', 'Quality',
             '완제품의 자가품질 분석을 수행합니다.',
-            quality_resp.responsibility_id if quality_resp else None
+            
         )
 
         # 7-1) 생성된 모든 TaskTemplate을 품질관리팀에 할당

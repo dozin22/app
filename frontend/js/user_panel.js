@@ -223,9 +223,10 @@ async function onSaveDTExperts() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data?.message || '저장 중 오류 발생');
-
+    
     toast('DT 전문가 정보가 저장되었습니다.');
-    // await loadTeamMembers();
+    await loadTeamMembers();
+
 
   } catch (e) {
     console.error(e);

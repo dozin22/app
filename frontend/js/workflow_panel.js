@@ -141,9 +141,8 @@ export async function loadTaskTemplates() {
     if (!res.ok) throw new Error(data?.message || "업무 템플릿 로드 실패");
 
     State.taskTemplates = Array.isArray(data?.task_templates) ? data.task_templates : [];
-    State.teamResponsibilities = Array.isArray(data?.responsibilities) ? data.responsibilities : [];
+    State.teamResponsibilities = []; 
     renderTaskTemplateList();
-    populateResponsibilityDropdown();
 
     // ✅ 갱신 후에도 사용자가 보던 템플릿 유지
     if (lastSelectedTemplateId) {
@@ -163,7 +162,6 @@ export async function loadTaskTemplates() {
     State.taskTemplates = [];
     State.teamResponsibilities = [];
     renderTaskTemplateList();
-    populateResponsibilityDropdown();
   }
 }
 
@@ -199,17 +197,6 @@ function markActiveRow(id) {
   row?.classList.add('active');
 }
 
-function populateResponsibilityDropdown() {
-  const selectEl = document.getElementById("selTaskResp");
-  if (!selectEl) return;
-  if (!State.teamResponsibilities.length) {
-    selectEl.innerHTML = `<option value=""> (권한 없음/목록 없음)</option>`;
-    return;
-  }
-  selectEl.innerHTML = State.teamResponsibilities.map(r =>
-    `<option value="${r.responsibility_id}">${esc(r.responsibility_name)}</option>`
-  ).join('');
-}
 
 function showNewTaskTemplateForm() {
   document.querySelectorAll('#taskListBody tr.task-list-item').forEach(i => i.classList.remove('active'));
@@ -233,7 +220,7 @@ function showTaskTemplateForm(template) {
   document.getElementById("inpTaskName").value       = template.template_name ?? "";
   document.getElementById("inpTaskCategory").value   = template.category ?? '';
   document.getElementById("inpTaskDesc").value       = template.description ?? '';
-  document.getElementById("selTaskResp").value       = template.required_responsibility_id ?? "";
+  
 }
 
 /* ============== 
@@ -252,7 +239,7 @@ export async function onSaveTaskTemplate() {
     
     category: document.getElementById("inpTaskCategory")?.value ?? "",
     description: document.getElementById("inpTaskDesc")?.value ?? "",
-    required_responsibility_id: Number(document.getElementById("selTaskResp")?.value ?? 0) || null,
+    
   };
 
   if (!payload.template_name) {

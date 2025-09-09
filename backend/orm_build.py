@@ -90,12 +90,7 @@ class Responsibility(Base):
     users: Mapped[list["User"]] = relationship(
         back_populates="responsibilities", secondary="user_responsibilities"
     )
-    required_by_task_templates: Mapped[list["TaskTemplate"]] = relationship(
-        back_populates="required_responsibility"
-    )
-    # required_by_task_templates: Mapped[list["TaskTemplate"]] = relationship(
-    #     back_populates="required_responsibility"
-    # )
+
 
 class User(Base):
     __tablename__ = "users"
@@ -133,16 +128,11 @@ class TaskTemplate(Base):
     
     category: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    required_responsibility_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("responsibilities.responsibility_id"), nullable=True
-    )
 
     teams: Mapped[list["Team"]] = relationship(
         back_populates="task_templates", secondary="task_template_team_mappings"
     )
-    required_responsibility: Mapped[Optional["Responsibility"]] = relationship(
-        back_populates="required_by_task_templates"
-    )
+
     workflow_definitions: Mapped[list["WorkflowTemplateDefinition"]] = relationship(
         back_populates="task_template",
         foreign_keys="WorkflowTemplateDefinition.task_template_id",   # ← 이 줄 추가!
