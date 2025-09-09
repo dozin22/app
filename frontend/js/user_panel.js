@@ -204,9 +204,13 @@ function renderTeamMembers(members){
     tbody.appendChild(tr);
   });
 }
+
 async function onSaveDTExperts() {
   const btn = document.getElementById("btnDTSave");
-  btn && (btn.disabled = true);
+  if (!btn) return;
+
+  btn.disabled = true;
+  btn.textContent = "저장 중..."; // 사용자에게 피드백 제공
 
   const payload = [];
   document.querySelectorAll('#tblDTList tbody tr').forEach(tr => {
@@ -216,30 +220,34 @@ async function onSaveDTExperts() {
   });
 
   try {
+    // ================= 1. 서버에 데이터 저장 요청 =================
     const res = await authFetch(`${EP_TEAM_MEMBERS}/dt-expert-status`, {
       method: 'PUT',
       body: JSON.stringify({ updates: payload })
     });
-    
-    // ✅ 1. 응답으로 온 최신 데이터를 직접 받음
+
     const updatedTeamMembers = await res.json().catch(() => null);
 
     if (!res.ok) {
-      throw new Error(updatedTeamMembers?.message || '저장 중 오류 발생');
+      throw new Error(updatedTeamMembers?.message || '저장 중 오류가 발생했습니다.');
     }
+
+    // ================= 2. State 업데이트 (아직 화면은 안 그림) =================
+    State.teamMembers = Array.isArray(updatedTeamMembers) ? updatedTeamMembers : [];
     
-    // ✅ 2. 응답 데이터를 State에 반영하고 화면을 다시 그림
-    State.teamMembers = updatedTeamMembers || [];
-    renderTeamMembers(State.teamMembers);
-
-    toast('DT 전문가 정보가 저장되었습니다.');
-
-    // ❌ 별도의 loadTeamMembers() 호출은 이제 필요 없음
+    // ================= 3. 화면 그리기는 다음 렌더링 프레임으로 넘김 =================
+    // 이렇게 한 프레임을 넘기면, 브라우저가 이전의 모든 작업을 안정적으로 마칠 시간을 확보할 수 있습니다.
+    requestAnimationFrame(() => {
+        renderTeamMembers(State.teamMembers);
+        toast('DT 전문가 정보가 저장되었습니다.');
+    });
 
   } catch (e) {
     console.error(e);
     toast(e.message || '저장 실패');
   } finally {
-    btn && (btn.disabled = false);
+    // 성공하든 실패하든 버튼 상태를 원래대로 복구
+    btn.disabled = false;
+    btn.textContent = "저장";
   }
 }

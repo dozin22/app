@@ -1,9 +1,6 @@
-// /frontend/js/db_management.js
 
-/* ==================================================
- * ===== (기존 db_shared.js의 내용) =====
- * 공용 상수, 전역 상태, 헬퍼 함수들
- * ================================================== */
+import { initUserPanel, loadTeamMembers } from './user_panel.js';
+import { initWorkflowPanel, loadTaskTemplates } from './workflow_panel.js';
 
 // API 엔드포인트와 공용 상수를 정의하고 내보냅니다.
 import { API_URL } from './config.js';
@@ -121,18 +118,6 @@ export function setKvEmailEdit(local){
   });
   input.addEventListener('keydown', (e) => { if (e.key === '@') e.preventDefault(); });
 }
-
-
-/* ==================================================
- * ===== (기존 db_management.js의 내용) =====
- * 페이지 초기화 및 탭 관리 로직
- * ================================================== */
-
-// 각 패널의 초기화 함수를 가져옵니다.
-// ✅ 이제 shared.js를 import할 필요가 없습니다.
-import { initUserPanel, loadTeamMembers } from './user_panel.js';
-import { initWorkflowPanel, loadTaskTemplates } from './workflow_panel.js';
-
 
 // ===== 어플리케이션 부팅 =====
 window.addEventListener("DOMContentLoaded", async () => {
