@@ -134,54 +134,81 @@
           </div>
         </div>
 
-        <!-- 업무 흐름도 (새 패널: panel-flow) -->
-        <div class="panel hidden" id="panel-flow">
-          <div class="workflow-editor-layout">
-            <div class="workflow-list-pane">
-              <div class="list-header">
-                <h4>업무 흐름도 목록</h4>
-                <button class="btn btn-ghost" id="btnNewWorkflowTemplate">+</button>
-              </div>
-              <div class="workflow-list-wrap">
-                <table class="workflow-table">
-                  <thead>
-                    <tr>
-                      <th class="col-num">순번</th>
-                      <th>업무 흐름도</th>
-                    </tr>
-                  </thead>
-                  <tbody id="workflowListBody"></tbody>
-                </table>
-              </div>
-            </div>
+       <!-- 업무 흐름도 (새 패널: panel-flow) -->
+<div class="panel hidden" id="panel-flow">
+  <div class="workflow-editor-layout">
+    <!-- 좌: 목록 -->
+    <div class="workflow-list-pane">
+      <div class="list-header">
+        <h4>업무 흐름도 목록</h4>
+        <button class="btn btn-ghost" id="btnNewWorkflowTemplate">+</button>
+      </div>
+      <div class="workflow-list-wrap">
+        <table class="workflow-table">
+          <thead>
+            <tr>
+              <th class="col-num">순번</th>
+              <th>업무 흐름도</th>
+            </tr>
+          </thead>
+          <tbody id="workflowListBody"></tbody>
+        </table>
+      </div>
+    </div>
 
-            <div class="workflow-form-pane card">
-              <h3 id="workflowFormTitle">업무 흐름도 편집</h3>
-              <div id="workflowForm" class="hidden">
-                <input type="hidden" id="inpWorkflowId">
-                <div class="form-group"><label for="inpWorkflowName">이름</label><input type="text" id="inpWorkflowName"></div>
-                <div class="form-group"><label for="inpWorkflowDesc">설명</label><textarea id="inpWorkflowDesc" rows="4"></textarea></div>
-                <div class="actions">
-                  <button class="btn" id="btnDeleteWorkflowTemplate">삭제</button>
-                  <button class="btn primary" id="btnSaveWorkflowTemplate" type="button">저장</button>
-                </div>
-              </div>
-              <div id="workflowFormPlaceholder" class="placeholder-text">목록에서 항목을 선택하세요.</div>
-            </div>
-          </div>
+    <!-- 중: 편집 카드 (정의 표 포함) -->
+    <div class="workflow-form-pane card">
+      <h3 id="workflowFormTitle">업무 흐름도 편집</h3>
+
+      <div id="workflowForm" class="hidden">
+        <input type="hidden" id="inpWorkflowId">
+        <div class="form-group"><label for="inpWorkflowName">이름</label><input type="text" id="inpWorkflowName"></div>
+        <div class="form-group"><label for="inpWorkflowDesc">설명</label><textarea id="inpWorkflowDesc" rows="4"></textarea></div>
+        <div class="actions">
+          <button class="btn" id="btnDeleteWorkflowTemplate">삭제</button>
+          <button class="btn primary" id="btnSaveWorkflowTemplate" type="button">저장</button>
+        </div>
+      </div>
+
+      <div id="workflowFormPlaceholder" class="placeholder-text">목록에서 항목을 선택하세요.</div>
+
+      <!-- ▼ 업무 정의 편집 (표) -->
+      <div class="wf-defs">
+        <h4 class="sub">업무 연결 정의</h4>
+        <div class="kv defs-add">
+          <label>새 연결 추가</label>
+          <select id="selAddTask"></select>
+          <select id="selAddDepends">
+            <option value="">(선행 없음)</option>
+          </select>
+          <button class="btn primary" id="btnAddDef">추가</button>
         </div>
 
-        <!-- (선택) 트리 미리보기 탭이 별도로 필요하다면 유지 -->
-        <div class="panel hidden" id="panel-tree">
-          <div class="card">
-            <h3>업무 흐름도 미리보기</h3>
-            <div class="tree-area">흐름도는 추후 연결될 예정이에요 :)</div>
-            <div class="actions">
-              <button class="btn" id="btnTreeReload">흐름도 불러오기</button>
-              <button class="btn primary" id="btnTreeNew">새 흐름도 생성</button>
-            </div>
-          </div>
+        <div class="table-wrap" style="margin-top:8px; max-height:320px; overflow:auto;">
+          <table class="table" id="tblDefs">
+            <thead>
+              <tr>
+                <th style="width:80px;">ID</th>
+                <th>업무</th>
+                <th>선행업무</th>
+                <th style="width:180px;">작업</th>
+              </tr>
+            </thead>
+            <tbody id="defsBody"></tbody>
+          </table>
         </div>
+      </div>
+      <!-- ▲ 정의 편집 끝 -->
+    </div>
+
+    <!-- 우: 그래프 카드 -->
+    <aside class="workflow-graph-pane card">
+      <h3>흐름도</h3>
+      <div id="workflowGraph" class="graph-canvas"></div>
+    </aside>
+  </div>
+</div>
+
 
       </section>
     </section>

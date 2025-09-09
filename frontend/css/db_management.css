@@ -412,3 +412,50 @@
   }
   .workflow-form-pane { height: auto; }
 }
+/* === 업무 흐름도 3열 레이아웃 오버라이드 === */
+.workflow-editor-layout {
+  display: grid;
+  grid-template-columns: 320px 520px minmax(360px, 1fr); /* 목록 / 편집 / 그래프 */
+  gap: 16px;
+  height: 65vh;
+  align-items: stretch;
+}
+
+/* 우측 그래프 카드 */
+.workflow-graph-pane {
+  background: #fff;
+  border: 1px solid #e3e6ef;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  height: 98.5%;
+}
+.graph-canvas {
+  width: 100%;
+  height: 100%;
+  border: 1px solid #e3e6ef;
+  border-radius: 8px;
+  /* SVG가 꽉 차도록 */
+  overflow: hidden;
+}
+
+/* 정의 표 영역(편집 카드 내부) */
+.wf-defs { margin-top: 16px; }
+.wf-defs .sub { margin: 0 0 8px; font-size: 16px; }
+.wf-defs .defs-add {
+  grid-template-columns: 120px 1fr 1fr 110px; /* 라벨 / 업무 / 선행 / 버튼 */
+  align-items: center;
+}
+
+/* 반응형: 너비 줄어들면 2열→1열로 자연스런 다운그레이드 */
+@media (max-width: 1200px) {
+  .workflow-editor-layout { grid-template-columns: 360px 1fr; }
+  .workflow-graph-pane { grid-column: 1 / -1; height: 360px; }
+  .graph-canvas { height: calc(360px - 32px); }
+}
+@media (max-width: 980px) {
+  .workflow-editor-layout { grid-template-columns: 1fr; height: auto; }
+  .workflow-graph-pane { height: auto; }
+  .graph-canvas { height: 320px; }
+}
