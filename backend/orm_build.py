@@ -54,11 +54,7 @@ def get_session():
         session.close()
 
 # ─────────────────────────────────────────────────────────────
-# 모델 정의 (기존 sqlite 스키마를 SQLAlchemy로 1:1 매핑)
-# 참고: teams, responsibilities, users, user_team_mappings, user_responsibilities,
-#       task_templates, workflow_templates, workflow_template_definitions,
-#       workflows, tasks, task_assignments, task_dependencies
-# (원본 스키마는 사용자가 올린 db_schema.py 기준)  # :contentReference[oaicite:0]{index=0}
+# 모델 정의
 
 class Team(Base):
     __tablename__ = "teams"
@@ -137,7 +133,7 @@ class TaskTemplate(Base):
 
     workflow_definitions: Mapped[list["WorkflowTemplateDefinition"]] = relationship(
         back_populates="task_template",
-        foreign_keys="WorkflowTemplateDefinition.task_template_id",   # ← 이 줄 추가!
+        foreign_keys="WorkflowTemplateDefinition.task_template_id",
         cascade="all, delete-orphan"
     )
     upstream_defs: Mapped[list["WorkflowTemplateDefinition"]] = relationship(
@@ -168,8 +164,8 @@ class Request(Base):
     workflow_id: Mapped[Optional[int]] = mapped_column(ForeignKey("workflows.workflow_id"))
     requester_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.user_id"))
     status: Mapped[Optional[str]] = mapped_column(String, default="PENDING")
-    created_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
-    completed_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True, server_default=func.now())
+    completed_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
     parameters: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     request_template: Mapped[Optional["RequestTemplate"]] = relationship(back_populates="requests")
@@ -201,24 +197,26 @@ class WorkflowTemplateDefinition(Base):
     workflow_template: Mapped["WorkflowTemplate"] = relationship(back_populates="definitions")
     task_template: Mapped["TaskTemplate"] = relationship(
         back_populates="workflow_definitions",
-        foreign_keys="[WorkflowTemplateDefinition.task_template_id]"  # ← 여기도 명시하면 더 안전
+        foreign_keys="[WorkflowTemplateDefinition.task_template_id]"
     )
     depends_on: Mapped[Optional["TaskTemplate"]] = relationship(
         foreign_keys="[WorkflowTemplateDefinition.depends_on_task_template_id]",
         back_populates="upstream_defs"
     )
+
 class Workflow(Base):
     __tablename__ = "workflows"
     workflow_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     workflow_template_id: Mapped[Optional[int]] = mapped_column(ForeignKey("workflow_templates.workflow_template_id"))
     status: Mapped[Optional[str]] = mapped_column(String, default="PENDING")
     assigned_team_id: Mapped[Optional[int]] = mapped_column(ForeignKey("teams.team_id"))
-    created_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
-    completed_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True, server_default=func.now())
+    completed_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+    parameters: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     workflow_template: Mapped[Optional["WorkflowTemplate"]] = relationship(back_populates="workflows")
     assigned_team: Mapped[Optional["Team"]] = relationship(back_populates="workflows")
-    tasks: Mapped[list["Task"]] = relationship(back_populates="workflow")
+    tasks: Mapped[list["Task"]] = relationship(back_populates="workflow", cascade="all, delete-orphan")
     request: Mapped[Optional["Request"]] = relationship(back_populates="workflow", uselist=False, cascade="all, delete-orphan")
 
 class Task(Base):
@@ -227,20 +225,27 @@ class Task(Base):
     task_template_id: Mapped[Optional[int]] = mapped_column(ForeignKey("task_templates.task_template_id"))
     workflow_id: Mapped[Optional[int]] = mapped_column(ForeignKey("workflows.workflow_id"))
     status: Mapped[Optional[str]] = mapped_column(String, default="PENDING")
-    created_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
-    completed_at: Mapped[Optional[str]] = mapped_column(TIMESTAMP, nullable=True)
-    task_info_params: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True, server_default=func.now())
+    completed_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+    # ★★★ task_info_params -> parameters 로 이름 변경 ★★★
+    parameters: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     task_template: Mapped[Optional["TaskTemplate"]] = relationship(back_populates="tasks")
     workflow: Mapped[Optional["Workflow"]] = relationship(back_populates="tasks")
     assigned_users: Mapped[list["User"]] = relationship(
         back_populates="assigned_tasks", secondary="task_assignments"
     )
-    upstream_dependencies: Mapped[list["TaskDependency"]] = relationship(
-        foreign_keys="TaskDependency.downstream_task_id", back_populates="downstream_task"
+    upstream_dependencies: Mapped[list["Task"]] = relationship(
+        secondary="task_dependencies",
+        primaryjoin="Task.task_id == TaskDependency.downstream_task_id",
+        secondaryjoin="Task.task_id == TaskDependency.upstream_task_id",
+        back_populates="downstream_dependencies"
     )
-    downstream_dependencies: Mapped[list["TaskDependency"]] = relationship(
-        foreign_keys="TaskDependency.upstream_task_id", back_populates="upstream_task"
+    downstream_dependencies: Mapped[list["Task"]] = relationship(
+        secondary="task_dependencies",
+        primaryjoin="Task.task_id == TaskDependency.upstream_task_id",
+        secondaryjoin="Task.task_id == TaskDependency.downstream_task_id",
+        back_populates="upstream_dependencies"
     )
 
 class TaskAssignment(Base):
@@ -252,9 +257,6 @@ class TaskDependency(Base):
     __tablename__ = "task_dependencies"
     upstream_task_id: Mapped[int] = mapped_column(ForeignKey("tasks.task_id", ondelete="CASCADE"), primary_key=True)
     downstream_task_id: Mapped[int] = mapped_column(ForeignKey("tasks.task_id", ondelete="CASCADE"), primary_key=True)
-
-    upstream_task: Mapped["Task"] = relationship(foreign_keys=[upstream_task_id], back_populates="downstream_dependencies")
-    downstream_task: Mapped["Task"] = relationship(foreign_keys=[downstream_task_id], back_populates="upstream_dependencies")
 
 class WorkflowtemplateTeamMapping(Base):
     __tablename__ = "workflow_template_team_mappings"
