@@ -229,7 +229,10 @@ function showTaskTemplateForm(template) {
 
 export async function onSaveTaskTemplate() {
   const btn = document.getElementById("btnSaveTaskTemplate");
-  btn && (btn.disabled = true);
+  if (!btn) return;
+
+  btn.disabled = true;
+  btn.textContent = "저장 중..."; // 사용자에게 피드백 제공
 
   const templateId = document.getElementById("inpTaskId")?.value;
   const isNew = !templateId;
@@ -245,6 +248,7 @@ export async function onSaveTaskTemplate() {
   if (!payload.template_name) {
     toast("템플릿 이름은 필수입니다.");
     btn && (btn.disabled = false);
+    btn.textContent = "저장"; // Reset button text on validation fail
     return;
   }
 
@@ -259,23 +263,30 @@ export async function onSaveTaskTemplate() {
         body: JSON.stringify(payload)
       });
 
+      const updatedTaskTemplate = await res.json().catch(() => null); // Changed to null for consistency
+
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData?.message || "저장 실패");
+        throw new Error(updatedTaskTemplate?.message || "저장 실패");
       }
 
-      // 성공 응답은 안전하게 json 파싱, 비어있어도 OK
-      const data = await res.json().catch(() => ({}));
-
-      toast(data?.message || "저장되었습니다.");
-
-      // 새로 생성된 경우 id를 기억하여 선택 유지
-      if (isNew && data?.task_template_id) {
-        lastSelectedTemplateId = Number(data.task_template_id);
+      // Update State.taskTemplates with the response
+      if (isNew && updatedTaskTemplate?.task_template_id) {
+        // For new templates, add to the list
+        State.taskTemplates.push(updatedTaskTemplate);
+        lastSelectedTemplateId = Number(updatedTaskTemplate.task_template_id);
       } else if (!isNew) {
+        // For existing templates, update the existing one
+        const index = State.taskTemplates.findIndex(t => Number(t.task_template_id) === Number(templateId));
+        if (index !== -1) {
+          State.taskTemplates[index] = { ...State.taskTemplates[index], ...updatedTaskTemplate };
+        }
         lastSelectedTemplateId = Number(templateId);
       }
-      await loadTaskTemplates();
+
+      requestAnimationFrame(() => {
+        renderTaskTemplateList();
+        toast(updatedTaskTemplate?.message || "저장되었습니다."); // Use message from response if available
+      });
 
       // 갱신 후 행 강조 복구 (loadTaskTemplates 내부에서도 수행하지만 한 번 더)
       if (lastSelectedTemplateId) {
@@ -290,7 +301,8 @@ export async function onSaveTaskTemplate() {
       // 실패해도 현재 선택 유지 시도
       if (lastSelectedTemplateId) markActiveRow(lastSelectedTemplateId);
     } finally {
-      btn && (btn.disabled = false);
+      btn.disabled = false;
+      btn.textContent = "저장"; // Reset button text
     }
   }, 0);
 }

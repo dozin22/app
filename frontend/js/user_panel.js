@@ -3,7 +3,7 @@
 import {
     State, esc, toast, authFetch, EP_ME, EP_TEAMS, EP_TEAM_MEMBERS, 
     FIXED_DOMAIN, EMAIL_KEY, POS_KEY, TEAM_KEY,
-    getLocalFromEmail, buildEmail, setKvEmailView, setKvEmailEdit
+    getLocalFromEmail, buildEmail, setKvEmailView, setKvEmailEdit,
 } from './db_management.js';
 
 // 이 모듈의 모든 로직을 초기화하고 이벤트 리스너를 바인딩합니다.
@@ -16,20 +16,22 @@ export function initUserPanel() {
 
   // ✅ 공통 바인더: 클릭 기본동작/버블 차단
   const bind = (id, handler) => {
-    
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      handler(e);
+      // ✅ handler(e)를 setTimeout으로 감싸줍니다.
+      // 이렇게 하면 브라우저가 클릭 이벤트를 완전히 처리하고 난 뒤에야
+      // 저장 로직이 실행되어 충돌을 원천적으로 방지합니다.
+      setTimeout(() => handler(e), 0);
     });
   };
 
   bind("btnEditMe", onToggleEditMe);
   bind("btnMeCancel", onCancelEditMe);
   bind("btnDTReload", () => loadTeamMembers());
-  bind("btnDTSave", () => onSaveDTExperts());
+  bind("btnDTSave", onSaveDTExperts); // ✅ 화살표 함수 제거하고 직접 연결
 }
 
 // ===== 인라인 편집 =====
@@ -209,8 +211,10 @@ async function onSaveDTExperts() {
   const btn = document.getElementById("btnDTSave");
   if (!btn) return;
 
+  const currentTabKey = State.activeTab;
+
   btn.disabled = true;
-  btn.textContent = "저장 중..."; // 사용자에게 피드백 제공
+  btn.textContent = "저장 중...";
 
   const payload = [];
   document.querySelectorAll('#tblDTList tbody tr').forEach(tr => {
@@ -220,33 +224,25 @@ async function onSaveDTExperts() {
   });
 
   try {
-    // ================= 1. 서버에 데이터 저장 요청 =================
     const res = await authFetch(`${EP_TEAM_MEMBERS}/dt-expert-status`, {
       method: 'PUT',
       body: JSON.stringify({ updates: payload })
     });
-
+    
     const updatedTeamMembers = await res.json().catch(() => null);
 
     if (!res.ok) {
       throw new Error(updatedTeamMembers?.message || '저장 중 오류가 발생했습니다.');
     }
-
-    // ================= 2. State 업데이트 (아직 화면은 안 그림) =================
-    State.teamMembers = Array.isArray(updatedTeamMembers) ? updatedTeamMembers : [];
     
-    // ================= 3. 화면 그리기는 다음 렌더링 프레임으로 넘김 =================
-    // 이렇게 한 프레임을 넘기면, 브라우저가 이전의 모든 작업을 안정적으로 마칠 시간을 확보할 수 있습니다.
-    requestAnimationFrame(() => {
-        renderTeamMembers(State.teamMembers);
-        toast('DT 전문가 정보가 저장되었습니다.');
-    });
+    State.teamMembers = updatedTeamMembers || [];
+    renderTeamMembers(State.teamMembers);
+    toast('DT 전문가 정보가 저장되었습니다.');
 
   } catch (e) {
     console.error(e);
     toast(e.message || '저장 실패');
   } finally {
-    // 성공하든 실패하든 버튼 상태를 원래대로 복구
     btn.disabled = false;
     btn.textContent = "저장";
   }
