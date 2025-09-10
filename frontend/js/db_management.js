@@ -3,6 +3,7 @@
 // 각 패널의 초기화 함수를 가져옵니다.
 import { initUserPanel, loadTeamMembers } from './user_panel.js';
 import { initTaskTemplatePanel, loadTaskTemplates } from './task_template_panel.js';
+import { initRequestTemplatePanel, loadRequestTemplates } from './request_template_panel.js';
 
 
 // API 엔드포인트와 공용 상수를 정의하고 내보냅니다.
@@ -17,6 +18,7 @@ export const EMAIL_KEY = "email";
 
 export const EP_TEAM_MEMBERS   = `${API_URL}/user-management/team-members`;
 export const EP_TASK_TEMPLATES = `${API_URL}/task-management/task-templates`;
+export const EP_REQUEST_TEMPLATES = `${API_URL}/request-management/request-templates`;
 export const EP_WORKFLOW_TEMPLATES = `${API_URL}/workflow-management/workflow-templates`;
 export const EP_TEAMS          = `${API_URL}/db-management/teams`;
 export const EP_ME             = `${API_URL}/user-management/me`;
@@ -39,6 +41,7 @@ export const State = {
   isLead: false,
   teamMembers: [],
   taskTemplates: [],
+  requestTemplates: [],
   teamResponsibilities: [],
   teams: [],
   editing: false,
@@ -131,6 +134,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   initUserPanel();
   initTaskTemplatePanel();
+  initRequestTemplatePanel();
   // 워크플로우 템플릿 패널은 import 시 이벤트 구독 + 탭 진입 시 자동 초기화
 });
 
@@ -198,6 +202,9 @@ function bindTabs(){
       if(tabKey === "work" && State.taskTemplates.length === 0) {
         await loadTaskTemplates();
       }
+      if(tabKey === "request" && State.requestTemplates.length === 0) {
+        await loadRequestTemplates();
+      }
       // 🔹 flow 탭은 workflow_template_panel.js가 탭 노출 시 자체 로딩함
       //    별도 호출 필요 없음. 필요 시 여기서 커스텀 이벤트를 쏴도 됨.
       // document.dispatchEvent(new CustomEvent('panel:activated', { detail: { targetId: '#panel-flow' }}));
@@ -231,6 +238,7 @@ function showPanel(key){
     user: "panel-user",
     dt:   "panel-dt",
     work: "panel-work",
+    request: "panel-request",
     flow: "panel-flow", // ★ 추가
     tree: "panel-tree"
   };

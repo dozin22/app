@@ -10,6 +10,7 @@ from calendark import bp_calendar
 from auth import bp_auth
 from user_management import bp_user_management
 from task_template_management import bp_task_management
+from request_template_management import bp_request_management
 from workflow_template_management import bp_workflow_management
 
 def create_app():
@@ -34,6 +35,7 @@ def create_app():
     app.register_blueprint(bp_workflow_management)  
     app.register_blueprint(bp_user_management)
     app.register_blueprint(bp_task_management)
+    app.register_blueprint(bp_request_management)
 
     return app
 

@@ -38,7 +38,8 @@
         <button class="v-tab active" data-tab="user"  id="tabUser"><span>1</span> 유저 정보</button>
         <button class="v-tab"        data-tab="dt"    id="tabDT"><span>2</span> DT 전문가 선임</button>
         <button class="v-tab"        data-tab="work"  id="tabWork"><span>3</span> 업무 서식</button>
-        <button class="v-tab"        data-tab="flow"  id="tabFlow"><span>4</span> 업무 흐름도</button>
+        <button class="v-tab"        data-tab="request"  id="tabRequest"><span>4</span> 요청 및 변경점 서식</button>
+        <button class="v-tab"        data-tab="flow"  id="tabFlow"><span>5</span> 업무 흐름도</button>
       </nav>
 
       <!-- 우측 콘텐츠 -->
@@ -70,7 +71,7 @@
             <hr class="section-divider" />
 
             <div class="kv-sub-section">
-              <!-- ★ 제목과 추가 컨트롤을 한 줄에 -->
+              <!-- ★ 제목과 추가 컨ㄹ트롤을 한 줄에 -->
               <div class="sub-row">
                 <h4 class="sub">담당 업무</h4>
                 <div class="kv inline-add" id="addRespSection">
@@ -157,6 +158,44 @@
           </div>
         </div>
 
+        <!-- 요청 및 변경점 서식 -->
+        <div class="panel hidden" id="panel-request">
+          <div class="request-editor-layout">
+            <div class="request-list-pane">
+              <div class="list-header">
+                <h4>요청 및 변경점 서식</h4>
+                <button class="btn btn-ghost" id="btnNewRequestTemplate">+</button>
+              </div>
+              <div class="request-list-wrap">
+                <table class="request-table">
+                  <thead>
+                    <tr>
+                      <th class="col-num">순번</th>
+                      <th>요청명</th>
+                    </tr>
+                  </thead>
+                  <tbody id="requestListBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="request-form-pane card">
+              <h3 id="requestFormTitle">요청 및 변경점 서식</h3>
+              <div id="requestForm" class="hidden">
+                <input type="hidden" id="inpRequestId">
+                <div class="form-group"><label for="inpRequestName">서식 이름</label><input type="text" id="inpRequestName"></div>
+                <div class="form-group"><label for="inpRequestDesc">설명</label><textarea id="inpRequestDesc" rows="4"></textarea></div>
+                <div class="actions">
+                  <button class="btn" id="btnDeleteRequestTemplate">삭제</button>
+                  <button class="btn" id="btnCopyRequestTemplate">복사</button>
+                  <button class="btn primary" id="btnSaveRequestTemplate" type="button">저장</button>
+                </div>
+              </div>
+              <div id="requestFormPlaceholder" class="placeholder-text">목록에서 항목을 선택하세요.</div>
+            </div>
+          </div>
+        </div>
+
         <!-- 업무 흐름도 (새 패널: panel-flow) -->
         <div class="panel hidden" id="panel-flow">
           <div class="workflow-editor-layout">
@@ -212,7 +251,7 @@
                   <table class="table" id="tblDefs">
                     <thead>
                       <tr>
-                        <th style="width:80px;">ID</th>
+                        <th style="width:80px;">순번</th>
                         <th>업무</th>
                         <th>선행업무</th>
                         <th style="width:180px;">작업</th>
@@ -243,6 +282,7 @@
 
 <script type="module" src="./js/db_management.js"></script>
 <script type="module" src="./js/workflow_template_panel.js"></script>
+<script type="module" src="./js/request_template_panel.js"></script>
 <div id="graphModal" class="modal hidden">
   <div class="modal-backdrop"></div>
   <div class="modal-content">

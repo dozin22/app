@@ -315,9 +315,9 @@ function renderDefs(){
     $body.innerHTML = `<tr><td colspan="4" class="muted">정의가 없습니다. 위에서 추가하세요.</td></tr>`;
     return;
   }
-  $body.innerHTML = WF.defs.map(d => `
+  $body.innerHTML = WF.defs.map((d, i) => `
     <tr data-def-id="${esc(d.definition_id)}">
-      <td>${esc(d.definition_id)}</td>
+      <td>${i + 1}</td>
       <td>${esc(d.task_template_name||'')}</td>
       <td>${esc(d.depends_on_task_template_name||'(없음)')}</td>
       <td>
@@ -331,6 +331,7 @@ function renderDefs(){
 function enterRowEdit(tr){
   const defId = Number(tr.getAttribute('data-def-id'));
   const d = WF.defs.find(x => x.definition_id === defId);
+  const defIndex = WF.defs.findIndex(x => x.definition_id === defId);
   const nodes = getNodesFromDefs();
 
   const taskSel = `<select data-task>${
@@ -344,7 +345,7 @@ function enterRowEdit(tr){
     </select>`;
 
   tr.innerHTML = `
-    <td>${esc(d.definition_id)}</td>
+    <td>${defIndex + 1}</td>
     <td>${taskSel}</td>
     <td>${depSel}</td>
     <td>
