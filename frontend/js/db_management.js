@@ -14,11 +14,16 @@ export const POS_KEY   = "position";
 export const TEAM_KEY  = "team";
 export const EMAIL_KEY = "email";
 
+
 export const EP_TEAM_MEMBERS   = `${API_URL}/user-management/team-members`;
 export const EP_TASK_TEMPLATES = `${API_URL}/task-management/task-templates`;
 export const EP_WORKFLOW_TEMPLATES = `${API_URL}/workflow-management/workflow-templates`;
 export const EP_TEAMS          = `${API_URL}/db-management/teams`;
 export const EP_ME             = `${API_URL}/user-management/me`;
+export const EP_ME_RESPONSIBILITIES = `${API_URL}/user-management/me/responsibilities`;
+export const EP_TEAM_RESPONSIBILITIES = `${API_URL}/user-management/team-responsibilities`;
+
+
 
 export const FIXED_DOMAIN = '@nongshim.com';
 

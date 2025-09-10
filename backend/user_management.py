@@ -7,7 +7,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import selectinload, joinedload
 import time
 
-from orm_build import get_session, User, Team, Responsibility
+from orm_build import get_session, User, Team, Responsibility, UserResponsibility
 
 bp_user_management = Blueprint("user_management", __name__, url_prefix="/api/user-management")
 
@@ -16,17 +16,19 @@ bp_user_management = Blueprint("user_management", __name__, url_prefix="/api/use
 ALLOWED_RESP = {"DT_Expert"}   # 책임(Responsibility) 이름 표준
 ALLOWED_POS  = {"팀장"}        # 직위(Position) 표준
 
-def _serialize_user(user: User) -> dict[str, Any]:
-    """User 객체를 JSON 직렬화 가능한 딕셔너리로 변환합니다."""
-    if not user:
-        return {}
+def _serialize_user(user: User) -> dict:
+    # ⚠️ responsibility_name → name 으로 매핑
     return {
         "user_id": user.user_id,
         "name": user.user_name,
         "email": user.email,
         "position": user.position,
-        "team_id": user.team.team_id if user.team else None,
-        "team": user.team.team_name if user.team else "팀 없음",
+        "team_id": user.team_id,
+        "team": (user.team.team_name if user.team else None),
+        "responsibilities": [
+            {"id": r.responsibility_id, "name": r.responsibility_name}
+            for r in (user.responsibilities or [])
+        ],
     }
 
 def require_team_lead(fn):
@@ -77,26 +79,23 @@ def require_db_admin(fn):
 
 # ─────────────────────────────────────────────────────────────
 # 내 정보 조회
-@bp_user_management.route("/me", methods=["GET"])
+@bp_user_management.get("/me")
 @jwt_required()
 def me_get():
-    try:
-        uid = int(get_jwt_identity())  # 전역 정책: identity는 user_id 문자열
-    except (ValueError, TypeError):
-        return jsonify({"message": "잘못된 토큰 식별자"}), 401
-
+    uid = int(get_jwt_identity())
     with get_session() as s:
-        user = (
+        me = (
             s.query(User)
-            .options(joinedload(User.team))  # 여기선 JOIN으로 한 방에
-            .filter_by(user_id=uid)
+            .options(
+                joinedload(User.team),
+                selectinload(User.responsibilities)  # ← N+1 방지용 eager-load
+            )
+            .filter(User.user_id == uid)
             .first()
         )
-        if not user:
+        if not me:
             return jsonify({"message": "유저를 찾을 수 없습니다"}), 404
-
-        return jsonify(_serialize_user(user)), 200
-
+        return jsonify(_serialize_user(me)), 200
 # ─────────────────────────────────────────────────────────────
 # 내 정보 수정
 @bp_user_management.route("/me", methods=["PUT"])
@@ -170,13 +169,17 @@ def get_team_members(current_user: User):
         
         data = []
         for member in team_members:
-            is_dt_expert = any(r.responsibility_name == "DT_Expert" for r in member.responsibilities)
+            # is_dt_expert = any(r.responsibility_name == "DT_Expert" for r in member.responsibilities)
             data.append({
                 "user_id": member.user_id,
                 "name": member.user_name,
                 "position": member.position,
                 "email": member.email,
-                "is_dt_expert": is_dt_expert
+                "is_dt_expert": any(r.responsibility_name == "DT_Expert" for r in member.responsibilities),
+                "responsibilities": [
+                    {"id": r.responsibility_id, "name": r.responsibility_name}
+                    for r in member.responsibilities
+                ]
             })
         return jsonify(data), 200
 
@@ -225,3 +228,70 @@ def update_dt_expert_status(current_user: User):
         # ✅ 3. 성공 메시지 대신, 조회된 최신 데이터를 반환
         return jsonify(updated_data), 200
 
+# ─────────────────────────────────────────────
+# user_management.py (추가)
+@bp_user_management.post("/me/responsibilities")
+@jwt_required()
+def me_add_responsibility():
+    uid = int(get_jwt_identity())
+    payload = request.get_json(silent=True) or {}
+    rid = payload.get("responsibility_id")
+    if not rid:
+        return jsonify({"message": "responsibility_id is required"}), 400
+    with get_session() as s:
+        me = s.query(User).options(selectinload(User.responsibilities)).get(uid)
+        resp = s.query(Responsibility).get(rid)
+        if not me or not resp:
+            return jsonify({"message":"not found"}), 404
+        if resp in me.responsibilities:
+            return jsonify({"message":"already assigned"}), 409
+        # (선택) 같은 팀 제한 원하면 다음 줄 체크
+        # if me.team_id and resp.team_id != me.team_id: return jsonify({"message":"forbidden"}), 403
+        me.responsibilities.append(resp)
+        return jsonify({"message":"ok"}), 201
+
+@bp_user_management.delete("/me/responsibilities/<int:responsibility_id>")
+@jwt_required()
+def me_remove_responsibility(responsibility_id: int):
+    uid = int(get_jwt_identity())
+    with get_session() as s:
+        me = s.query(User).options(selectinload(User.responsibilities)).get(uid)
+        if not me:
+            return jsonify({"message":"not found"}), 404
+        target = next((r for r in me.responsibilities if r.responsibility_id == responsibility_id), None)
+        if not target:
+            return jsonify({"message":"not assigned"}), 404
+        me.responsibilities.remove(target)
+        return ("", 204)
+
+    
+
+@bp_user_management.get("/team-responsibilities")
+@jwt_required()
+def team_responsibility_list():
+    """현재 로그인한 사용자의 팀에 속한 책임(responsibilities) 목록 반환"""
+    uid = int(get_jwt_identity())
+    with get_session() as s:
+        me = (
+            s.query(User)
+            .options(joinedload(User.team))
+            .filter(User.user_id == uid)
+            .first()
+        )
+        if not me:
+            return jsonify({"message": "유저를 찾을 수 없습니다"}), 404
+
+        if not me.team_id:
+            # 팀 미지정이면 빈 배열
+            return jsonify([]), 200
+
+        rows = (
+            s.query(Responsibility.responsibility_id, Responsibility.responsibility_name)
+            .filter(Responsibility.team_id == me.team_id)
+            .order_by(Responsibility.responsibility_name.asc())
+            .all()
+        )
+        return jsonify([
+            {"responsibility_id": rid, "name": rname}
+            for rid, rname in rows
+        ]), 200

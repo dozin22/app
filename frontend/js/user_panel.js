@@ -1,36 +1,45 @@
-
 // /frontend/js/user_panel.js
 
-// ✅ markActiveByTabKey 함수를 import 목록에 추가
 import {
-    State, esc, toast, authFetch, EP_ME, EP_TEAMS, EP_TEAM_MEMBERS,
-    FIXED_DOMAIN, EMAIL_KEY, POS_KEY, TEAM_KEY,
-    getLocalFromEmail, buildEmail, setKvEmailView, setKvEmailEdit,
-    markActiveByTabKey
+  State, esc, toast, authFetch,
+  EP_ME, EP_TEAMS, EP_TEAM_MEMBERS, EP_TEAM_RESPONSIBILITIES, EP_ME_RESPONSIBILITIES,
+  FIXED_DOMAIN, EMAIL_KEY, POS_KEY, TEAM_KEY,
+  getLocalFromEmail, buildEmail, setKvEmailView, setKvEmailEdit,
+  markActiveByTabKey, setText, 
 } from './db_management.js';
 
 // 이 모듈의 모든 로직을 초기화하고 이벤트 리스너를 바인딩합니다.
 export function initUserPanel() {
-  document.getElementById('dtForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  });
-
-  const bind = (id, handler) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      // ✅ 클릭 이벤트와 실제 로직 실행을 분리하여 렌더링 충돌 방지
-      setTimeout(() => handler(e), 0);
-    });
-  };
-
+  // 기존 이벤트 리스너
+  document.getElementById('dtForm')?.addEventListener('submit', (e) => e.preventDefault());
   bind("btnEditMe", onToggleEditMe);
   bind("btnMeCancel", onCancelEditMe);
   bind("btnDTReload", () => loadTeamMembers());
-  bind("btnDTSave", onSaveDTExperts); // ✅ 직접 연결
+  bind("btnDTSave", onSaveDTExperts);
+
+  // 담당 업무 관리 이벤트 리스너
+  bind("btnAddResponsibility", onAddResponsibility);
+  document.getElementById('userResponsibilities')?.addEventListener('click', (e) => {
+    if (e.target.matches('.close')) {
+      const pill = e.target.closest('.pill');
+      const responsibilityId = pill?.dataset.id;
+      if (responsibilityId) onRemoveResponsibility(Number(responsibilityId));
+    }
+  });
+
+  // 초기 렌더링 (팀장 여부와 무관하게 본인 업무 관리 가능)
+  renderResponsibilities(State.me?.responsibilities || []);
+  loadTeamResponsibilitiesForDropdown();
+}
+
+function bind(id, handler) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setTimeout(() => handler(e), 0);
+  });
 }
 
 // ===== 인라인 편집 =====
@@ -101,17 +110,7 @@ async function onToggleEditMe(){
       const data = await res.json().catch(()=> ({}));
       if(!res.ok) throw new Error(data?.message || "저장 실패");
 
-      State.me = { ...State.me, ...data };
-      localStorage.setItem(EMAIL_KEY, State.me.email || "");
-      localStorage.setItem(POS_KEY,   State.me.position || "");
-      localStorage.setItem(TEAM_KEY,  State.me.team || "");
-
-      setKvEmailView(getLocalFromEmail(State.me.email));
-      const posCell = document.getElementById("kvPosition");
-      const teamCell = document.getElementById("kvTeam");
-      if (posCell) posCell.textContent = State.me.position || "—";
-      if (teamCell) teamCell.textContent = State.me.team || "—";
-
+      await refreshMyInfo(); // 수정 후 내 정보 다시 로드
       toast("저장되었습니다.");
 
       State.editing = false;
@@ -134,9 +133,9 @@ function onCancelEditMe(){
   const cancelBtn = document.getElementById("btnMeCancel");
 
   const { htmls } = State.editBackup || {};
-  if(htmls.kvEmail   != null) document.getElementById("kvEmail").innerHTML = htmls.kvEmail;
-  if(htmls.kvPosition!= null) document.getElementById("kvPosition").innerHTML = htmls.kvPosition;
-  if(htmls.kvTeam    != null) document.getElementById("kvTeam").innerHTML = htmls.kvTeam;
+  if(htmls?.kvEmail   != null) document.getElementById("kvEmail").innerHTML = htmls.kvEmail;
+  if(htmls?.kvPosition!= null) document.getElementById("kvPosition").innerHTML = htmls.kvPosition;
+  if(htmls?.kvTeam    != null) document.getElementById("kvTeam").innerHTML = htmls.kvTeam;
 
   State.editing = false;
   if (btn) btn.textContent = "수정";
@@ -157,9 +156,8 @@ async function loadTeams(){
   }
 }
 
-// ===== DT 전문가 선임 =====
+// ===== DT 전문가 선임 (팀장 전용) =====
 export async function loadTeamMembers(){
-  
   if(!State.isLead) return;
   try{
     const res = await authFetch(EP_TEAM_MEMBERS);
@@ -175,7 +173,6 @@ export async function loadTeamMembers(){
 }
 
 function renderTeamMembers(members){
-  
   const tbody = document.querySelector("#tblDTList tbody");
   const title = document.getElementById("dtListTitle");
   if(!tbody) return;
@@ -206,14 +203,11 @@ function renderTeamMembers(members){
   });
 }
 
-// ✅ onSaveDTExperts 함수 최종 수정본
 async function onSaveDTExperts() {
   const btn = document.getElementById("btnDTSave");
   if (!btn) return;
 
-  // 1. 저장 버튼 누르는 시점의 탭 '키'를 지역 변수에 저장
   const currentTabKey = State.activeTab;
-
   btn.disabled = true;
   btn.textContent = "저장 중...";
 
@@ -231,22 +225,129 @@ async function onSaveDTExperts() {
     });
     
     const updatedTeamMembers = await res.json().catch(() => null);
-
-    if (!res.ok) {
-      throw new Error(updatedTeamMembers?.message || '저장 중 오류가 발생했습니다.');
-    }
+    if (!res.ok) throw new Error(updatedTeamMembers?.message || '저장 중 오류가 발생했습니다.');
     
     State.teamMembers = updatedTeamMembers || [];
     renderTeamMembers(State.teamMembers);
     toast('DT 전문가 정보가 저장되었습니다.');
-
   } catch (e) {
     console.error(e);
     toast(e.message || '저장 실패');
   } finally {
-    // 2. 성공/실패 여부와 관계없이, 저장해두었던 '키'로 탭 상태를 반드시 복원
     markActiveByTabKey(currentTabKey);
     btn.disabled = false;
     btn.textContent = "저장";
+  }
+}
+
+// ===== 담당업무 관리 =====
+function renderResponsibilities(responsibilities) {
+  const container = document.getElementById('userResponsibilities');
+  const addSection = document.getElementById('addRespSection');
+  if (!container || !addSection) return;
+
+  container.innerHTML = '';
+  if (Array.isArray(responsibilities) && responsibilities.length > 0) {
+    responsibilities.forEach(r => {
+      const pill = document.createElement('div');
+      pill.className = 'pill';
+      pill.dataset.id = r.id;
+      pill.innerHTML = `
+        <span>${esc(r.name)}</span>
+        <button class="close" data-id="${r.id}" aria-label="담당업무 삭제">&times;</button>
+      `;
+      container.appendChild(pill);
+    });
+  } else {
+    container.innerHTML = `<span class="muted">담당 업무가 없습니다.</span>`;
+  }
+
+  // 모든 사용자에게 추가 섹션 활성
+  addSection.style.display = 'grid';
+}
+
+async function loadTeamResponsibilitiesForDropdown() {
+  try {
+    const res = await authFetch(EP_TEAM_RESPONSIBILITIES);
+    const data = await res.json().catch(() => []);
+    if (!res.ok) throw new Error((data && data.message) || '팀 담당업무 목록 로드 실패');
+    
+    const select = document.getElementById('selAddResponsibility');
+    if (!select) return;
+
+    const currentRespIds = new Set((State.me?.responsibilities || []).map(r => r.id));
+    const filteredOptions = (Array.isArray(data) ? data : []).filter(r => !currentRespIds.has(r.responsibility_id));
+
+    select.innerHTML = '<option value="">-- 선택 --</option>' + filteredOptions
+      .map(r => `<option value="${r.responsibility_id}">${esc(r.name)}</option>`)
+      .join('');
+  } catch (e) {
+    toast(e.message || '팀 담당업무 목록 로드 실패', 'error');
+  }
+}
+
+async function onAddResponsibility() {
+  const select = document.getElementById('selAddResponsibility');
+  if (!select) return;
+  const responsibilityId = select.value;
+  if (!responsibilityId) {
+    toast('추가할 업무를 선택하세요.', 'warn');
+    return;
+  }
+
+  try {
+    // ✅ 본인 전용(me) 엔드포인트 사용
+    const res = await authFetch(EP_ME_RESPONSIBILITIES, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ responsibility_id: Number(responsibilityId) })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || '추가 실패');
+
+    toast('담당 업무가 추가되었습니다.');
+    await refreshMyInfo();
+    // 드롭다운 갱신
+    await loadTeamResponsibilitiesForDropdown();
+  } catch (e) {
+    toast(e.message || '오류가 발생했습니다.', 'error');
+  }
+}
+
+async function onRemoveResponsibility(responsibilityId) {
+  if (!confirm('정말 이 담당 업무를 삭제하시겠습니까?')) return;
+
+  try {
+    // ✅ 본인 전용(me) 엔드포인트 사용
+    const res = await authFetch(`${EP_ME_RESPONSIBILITIES}/${responsibilityId}`, { method: 'DELETE' });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || '삭제 실패');
+
+    toast('담당 업무가 삭제되었습니다.');
+    await refreshMyInfo();
+    // 드롭다운 갱신
+    await loadTeamResponsibilitiesForDropdown();
+  } catch (e) {
+    toast(e.message || '오류가 발생했습니다.', 'error');
+  }
+}
+
+async function refreshMyInfo() {
+  try {
+    const res = await authFetch(EP_ME);
+    if (!res.ok) throw new Error('내 정보 갱신 실패');
+    const data = await res.json();
+    State.me = { ...State.me, ...data };
+    
+    // 기본 정보 다시 그리기
+    setText("kvName", State.me.name);
+    setText("kvTeam", State.me.team || "—");
+    setKvEmailView(getLocalFromEmail(State.me.email));
+    setText("kvPosition", State.me.position);
+
+    // 담당 업무 다시 그리기
+    renderResponsibilities(State.me.responsibilities || []);
+  } catch (e) {
+    toast(e.message || '내 정보 갱신 실패', 'error');
   }
 }

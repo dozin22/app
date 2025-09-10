@@ -17,6 +17,14 @@
 }
 .card h3 { margin:0 0 8px; }
 
+/* ★ 카드 폭 60%로 축소 + 가운데 정렬 (user 패널에 적용) */
+.panel--narrow .card{
+  width:60%;
+  min-width:520px;               /* 너무 좁아지지 않게 */
+  max-width:1000px;
+  margin:0 auto 16px;
+}
+
 .dbm-wrap { display:grid; grid-template-columns:220px 1fr; gap:16px; }
 .dbm-content .panel.hidden { display:none; }
 
@@ -63,6 +71,7 @@
   .dbm-wrap { grid-template-columns:1fr; }
   .v-tabs { flex-direction:row; overflow:auto; }
   .v-tab { white-space:nowrap; }
+  .panel--narrow .card{ width:92%; min-width:0; } /* 모바일에선 자연스럽게 */
 }
 
 /* --- Inline email edit --- */
@@ -116,15 +125,13 @@
 }
 
 /* =========================================================
-   Workflow Template Panel (3-column: List / Form+Defs / Graph)
+   Workflow Template Panel
    ========================================================= */
 .workflow-editor-layout{
   display:grid;
   grid-template-columns:320px 520px minmax(360px, 1fr);
   gap:16px; height:65vh; align-items:stretch;
 }
-
-/* Left: List */
 .workflow-list-pane{
   background:#fff; border:1px solid #e3e6ef; border-radius:12px;
   padding:12px; display:flex; flex-direction:column; height:100%; overflow:hidden;
@@ -150,11 +157,10 @@
 .workflow-table tr:hover{ background:#f7f9ff; }
 .workflow-table tr.active{ background:#eef3ff; }
 
-/* Middle: Form + Definitions */
 .workflow-form-pane{
   background:#fff; border:1px solid #e3e6ef; border-radius:12px;
   padding:16px; display:flex; flex-direction:column; height:98.5%;
-  min-width:0; /* <<< grid 아이템 확장 방지(버튼 잘림 방지 1) */
+  min-width:0;
 }
 .workflow-form-pane h3{ margin:0 0 10px; }
 .workflow-form-pane .form-group{ display:flex; flex-direction:column; margin-bottom:12px; }
@@ -167,58 +173,37 @@
 .workflow-form-pane .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:20px; }
 #workflowFormPlaceholder{ display:grid; place-items:center; height:100%; color:#889; }
 
-/* --- Definitions (inside form) --- */
 .wf-defs{ margin-top:16px; }
 .wf-defs .sub{ margin:0 0 8px; font-size:16px; }
+.wf-defs, .wf-defs label, .wf-defs select, #tblDefs th, #tblDefs td { font-size:13px; line-height:1.25; }
 
-/* 줄임/타이포 */
-.wf-defs, .wf-defs label, .wf-defs select, #tblDefs th, #tblDefs td {
-  font-size:13px; line-height:1.25;
-}
-
-/* '새 연결 추가' 4열 그리드 (버튼 안 잘리게) */
 .wf-defs .defs-add{
   display:grid;
-  grid-template-columns: 80px minmax(120px,1fr) minmax(120px,1fr) 68px; /* 라벨 / 업무 / 선행 / 버튼 */
+  grid-template-columns: 80px minmax(120px,1fr) minmax(120px,1fr) 68px;
   gap:8px 10px; align-items:center;
 }
 .wf-defs .defs-add select{ height:32px; padding:3px 8px; border-radius:6px; border:1px solid #ccd2e0; min-width:0; }
 .wf-defs .defs-add .btn{ justify-self:end; min-width:64px; padding:6px 10px; }
 
-/* 정의 테이블: 폼 카드 폭에 맞춰 수축되도록 (버튼 잘림 방지 2) */
 .wf-defs .table-wrap{ margin-top:8px; max-height:320px; overflow:auto; }
-#tblDefs{ width:100%; min-width:0; table-layout:fixed; } /* <<< generic min-width:640px 무력화 */
+#tblDefs{ width:100%; min-width:0; table-layout:fixed; }
 #tblDefs th, #tblDefs td{ padding:8px 10px; }
-#tblDefs td{ word-break:break-word; overflow-wrap:anywhere; } /* 긴 한글/영문 줄바꿈 허용 */
-
-/* ID/작업 열 폭 고정, 본문 열은 자동 */
-#tblDefs th:first-child, #tblDefs td:first-child{
-  width:1px; min-width:1px; padding-left:1px; padding-right:1px; text-align:center; color:#778;
-}
-#tblDefs th:nth-child(2), #tblDefs td:nth-child(2){
-  width:150px; min-width:100px; padding-left:6px; padding-right:6px;
-}
-#tblDefs th:nth-child(3), #tblDefs td:nth-child(3){
-  width:150px; min-width:120px; padding-left:6px; padding-right:6px;
-}
-
-#tblDefs th:last-child, #tblDefs td:last-child{
-  width:50px; white-space:nowrap; /* 버튼 줄바꿈 금지 */
-}
+#tblDefs td{ word-break:break-word; overflow-wrap:anywhere; }
+#tblDefs th:first-child, #tblDefs td:first-child{ width:1px; min-width:1px; padding-left:1px; padding-right:1px; text-align:center; color:#778; }
+#tblDefs th:nth-child(2), #tblDefs td:nth-child(2){ width:150px; min-width:100px; padding-left:6px; padding-right:6px; }
+#tblDefs th:nth-child(3), #tblDefs td:nth-child(3){ width:150px; min-width:120px; padding-left:6px; padding-right:6px; }
+#tblDefs th:last-child, #tblDefs td:last-child{ width:50px; white-space:nowrap; }
 
 /* Right: Graph */
 .workflow-graph-pane{
   background:#fff; border:1px solid #e3e6ef; border-radius:12px;
   padding:16px; display:flex; flex-direction:column; height:98.5%;
-  min-width:0; /* 그래프 카드도 과확장 방지 */
+  min-width:0;
 }
-.graph-canvas{
-  width:100%; height:100%; border:1px solid #e3e6ef; border-radius:8px; overflow:hidden;
-}
+.graph-canvas{ width:100%; height:100%; border:1px solid #e3e6ef; border-radius:8px; overflow:hidden; }
 
-/* Responsive for workflow panel */
 @media (min-width:1100px){
-  .workflow-editor-layout{ grid-template-columns:320px 560px minmax(360px, 1fr); } /* 가운데 여유 */
+  .workflow-editor-layout{ grid-template-columns:320px 560px minmax(360px, 1fr); }
 }
 @media (max-width:1200px){
   .workflow-editor-layout{ grid-template-columns:360px 1fr; }
@@ -231,8 +216,6 @@
   .graph-canvas{ height:320px; }
 }
 
-/* Misc */
-.dtlistTTitle{ font-size:20px; font-weight:600; margin-bottom:12px; }
 /* =========================================================
    Modal (common)
    ========================================================= */
@@ -251,3 +234,81 @@
   box-shadow:0 8px 40px rgba(0,0,0,.18);
 }
 .modal-close{position:absolute;top:8px;right:10px;border:0;background:transparent;font-size:28px;line-height:1;cursor:pointer}
+
+/* =========================================================
+   담당 업무(Pill) UI
+   ========================================================= */
+.pill-container {
+  display: flex;
+  flex-wrap: wrap;          /* 줄바꿈으로 아래로 계속 추가 */
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  min-height: 38px;
+}
+.pill {
+  display: flex;
+  align-items: center;
+  background-color: #e9ecef;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #343a40;
+}
+.pill .close {
+  margin-left: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  color: #6c757d;
+  border: none;
+  background: none;
+  padding: 0;
+}
+.pill .close:hover { color: #212529; }
+
+/* 제목 + 컨트롤 */
+.card-head{
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:14px;            /* '내 계정' 아래 여백 확대 */
+}
+.card-head h3{ margin:0; }
+
+/* 섹션 구분선 */
+.section-divider{
+  border:0; border-top:1px solid #e8edf7; margin:16px 0 14px;
+}
+
+/* '담당 업무' 제목줄 */
+.sub-row{
+  display:flex; align-items:center; gap:12px; justify-content:space-between;
+  margin-bottom:6px;
+}
+.sub-row h4.sub{ margin:0; }
+
+/* ★ 오른쪽 컨트롤: 겹침 방지용 레이아웃 */
+#addRespSection{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:nowrap;          /* 넓을 땐 한 줄 */
+}
+#addRespSection select{
+  height:32px; padding:4px 8px;
+  border-radius:8px; border:1px solid #ccd2e0;
+  min-width:160px;           /* 너무 좁아지지 않게 */
+  max-width:240px;
+}
+#addRespSection .btn{
+  height:32px; padding:4px 10px; flex:0 0 auto;
+}
+
+/* 작은 화면에서는 줄바꿈 허용 (겹침 회피) */
+@media (max-width:720px){
+  .sub-row{ flex-wrap:wrap; gap:8px 12px; }
+  #addRespSection{ flex-wrap:wrap; justify-content:flex-end; }
+}
