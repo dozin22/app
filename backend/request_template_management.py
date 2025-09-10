@@ -4,7 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import selectinload
 
 # orm
-from orm_build import get_session, User, Team, RequestTemplate, WorkflowTemplate
+from orm_build import get_session, User, Team, RequestTemplate
 
 # custom decorator
 from user_management import require_db_admin
@@ -15,12 +15,12 @@ bp_request_management = Blueprint("request_management", __name__, url_prefix="/a
 @bp_request_management.get("/request-templates")
 @jwt_required()
 def get_request_templates():
-    """사용자 팀에 매핑된 RequestTemplate 목록과 전체 WorkflowTemplate 목록을 반환"""
+    """사용자 팀에 매핑된 RequestTemplate 목록을 반환"""
     uid = int(get_jwt_identity())
     with get_session() as s:
         current_user = s.get(User, uid)
         if not current_user or not current_user.team_id:
-            return jsonify({"request_templates": [], "workflow_templates": []})
+            return jsonify({"request_templates": []})
 
         request_templates = (
             s.query(RequestTemplate)
@@ -29,7 +29,6 @@ def get_request_templates():
             .order_by(RequestTemplate.template_name)
             .all()
         )
-        workflow_templates = s.query(WorkflowTemplate).order_by(WorkflowTemplate.template_name).all()
 
         return jsonify({
             "request_templates": [
@@ -37,14 +36,7 @@ def get_request_templates():
                     "request_template_id": rt.request_template_id,
                     "template_name": rt.template_name,
                     "description": rt.description,
-                    "workflow_template_id": rt.workflow_template_id,
                 } for rt in request_templates
-            ],
-            "workflow_templates": [
-                {
-                    "workflow_template_id": wt.workflow_template_id,
-                    "template_name": wt.template_name,
-                } for wt in workflow_templates
             ]
         })
 
@@ -75,8 +67,7 @@ def create_request_template():
 
         new_template = RequestTemplate(
             template_name=template_name,
-            description=data.get("description"),
-            workflow_template_id=data.get("workflow_template_id")
+            description=data.get("description")
         )
         
         team_to_map = s.get(Team, current_user.team_id)
@@ -85,9 +76,13 @@ def create_request_template():
         s.add(new_template)
         s.flush()
         
+        # 생성된 객체를 직렬화하여 반환
+        s.refresh(new_template)
         return jsonify({
             "message": "새 요청 서식이 생성되었습니다.",
-            "request_template_id": new_template.request_template_id
+            "request_template_id": new_template.request_template_id,
+            "template_name": new_template.template_name,
+            "description": new_template.description
         }), 201
 
 @bp_request_management.put("/request-templates/<int:template_id>")
@@ -110,10 +105,15 @@ def update_request_template(template_id: int):
 
         rt.template_name = data.get("template_name", rt.template_name)
         rt.description = data.get("description", rt.description)
-        rt.workflow_template_id = data.get("workflow_template_id", rt.workflow_template_id)
         
         s.commit()
-        return jsonify({"message": "요청 서식이 업데이트되었습니다."})
+        s.refresh(rt)
+        return jsonify({
+            "message": "요청 서식이 업데이트되었습니다.",
+            "request_template_id": rt.request_template_id,
+            "template_name": rt.template_name,
+            "description": rt.description
+        })
 
 
 @bp_request_management.delete("/request-templates/<int:template_id>")

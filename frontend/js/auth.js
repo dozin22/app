@@ -90,8 +90,30 @@ window.addEventListener('DOMContentLoaded', () => {
     const signupButton = document.getElementById('signup-btn');
     if (signupButton) {
         signupButton.addEventListener('click', signup);
+        populateTeamsDropdown(); // 팀 목록 채우기 함수 호출
     }
 
 });
+
+// 팀 목록을 동적으로 채우는 함수
+async function populateTeamsDropdown() {
+    const teamSelect = document.getElementById('team');
+    if (!teamSelect) return;
+
+    try {
+        const teams = await request("/teams"); // GET 요청
+        teamSelect.innerHTML = '<option value="">팀을 선택하세요...</option>'; // 기본 옵션
+        teams.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team.id;
+            option.textContent = team.name;
+            teamSelect.appendChild(option);
+        });
+    } catch (err) {
+        console.error("팀 목록을 불러오는 데 실패했습니다:", err);
+        teamSelect.innerHTML = '<option value="">팀 목록을 불러올 수 없습니다.</option>';
+    }
+}
+
 
 // ───────────────────────────────────────────────

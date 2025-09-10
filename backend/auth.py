@@ -91,3 +91,11 @@ def login():
             "position": user.position,
             "team": user.team.team_name if user.team else "팀 없음"
         }), 200
+
+# ── 팀 목록 조회 (회원가입용) ──────────────────────────────────
+@bp_auth.get("/teams")
+def get_teams():
+    """회원가입 폼에서 사용할 팀 목록을 반환"""
+    with get_session() as s:
+        teams = s.query(Team).order_by(Team.team_name).all()
+        return jsonify([{"id": t.team_id, "name": t.team_name} for t in teams])

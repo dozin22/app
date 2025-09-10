@@ -228,7 +228,6 @@ export async function onSaveRequestTemplate() {
 
   const payload = {
     template_name: document.getElementById("inpRequestName")?.value ?? "",
-    category: document.getElementById("inpRequestCategory")?.value ?? "",
     description: document.getElementById("inpRequestDesc")?.value ?? "",
   };
 
