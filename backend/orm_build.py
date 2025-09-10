@@ -65,15 +65,19 @@ class Team(Base):
     responsibilities: Mapped[list["Responsibility"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
     )
-    workflows: Mapped[list["Workflow"]] = relationship(
-        back_populates="assigned_team"
-    )
+    # workflows: Mapped[list["Workflow"]] = relationship(
+    #     back_populates="assigned_team"
+    # )
     task_templates: Mapped[list["TaskTemplate"]] = relationship(
         back_populates="teams", secondary="task_template_team_mappings"
     )
     workflow_templates: Mapped[list["WorkflowTemplate"]] = relationship(
         back_populates="teams", secondary="workflow_template_team_mappings"
     )
+    # ★ Team이 담당하는 RequestFulfillment 목록
+    fulfillments: Mapped[list["RequestFulfillment"]] = relationship(back_populates="assigned_team")
+
+
 class Responsibility(Base):
     __tablename__ = "responsibilities"
     responsibility_id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -147,31 +151,77 @@ class TaskTemplateTeamMapping(Base):
     task_template_id: Mapped[int] = mapped_column(ForeignKey("task_templates.task_template_id", ondelete="CASCADE"), primary_key=True)
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.team_id", ondelete="CASCADE"), primary_key=True)
 
+
+# ✅ 1. RequestTemplateTeamMapping 신설
+class RequestTemplateTeamMapping(Base):
+    __tablename__ = "request_template_team_mappings"
+    request_template_id: Mapped[int] = mapped_column(ForeignKey("request_templates.request_template_id", ondelete="CASCADE"), primary_key=True)
+    team_id: Mapped[int] = mapped_column(ForeignKey("teams.team_id", ondelete="CASCADE"), primary_key=True)
+
 class RequestTemplate(Base):
     __tablename__ = "request_templates"
     request_template_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     template_name: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    workflow_template_id: Mapped[Optional[int]] = mapped_column(ForeignKey("workflow_templates.workflow_template_id"))
 
-    workflow_template: Mapped[Optional["WorkflowTemplate"]] = relationship(back_populates="request_templates")
+    # ✅ 2. WorkflowTemplate과의 직접적인 Foreign Key 관계 제거
+    # workflow_template_id: Mapped[Optional[int]] = mapped_column(ForeignKey("workflow_templates.workflow_template_id"))
+    # workflow_template: Mapped[Optional["WorkflowTemplate"]] = relationship(back_populates="request_templates")
+    
     requests: Mapped[list["Request"]] = relationship(back_populates="request_template")
+
+    # ✅ 3. Team과의 다대다(N:M) 관계 설정
+    teams: Mapped[list["Team"]] = relationship(
+        secondary="request_template_team_mappings"
+    )
+
 
 class Request(Base):
     __tablename__ = "requests"
     request_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     request_template_id: Mapped[Optional[int]] = mapped_column(ForeignKey("request_templates.request_template_id"))
-    workflow_id: Mapped[Optional[int]] = mapped_column(ForeignKey("workflows.workflow_id"))
     requester_user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.user_id"))
+    
+    # ✅ 4. status는 종합 상태를 나타냄
     status: Mapped[Optional[str]] = mapped_column(String, default="PENDING")
+    
     created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True, server_default=func.now())
     completed_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
     parameters: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     request_template: Mapped[Optional["RequestTemplate"]] = relationship(back_populates="requests")
     requester: Mapped[Optional["User"]] = relationship(back_populates="requests")
-    workflow: Mapped[Optional["Workflow"]] = relationship(back_populates="request", uselist=False)
+
+    # ✅ 5. workflow_id 및 workflow 관계 제거
+    # workflow_id: Mapped[Optional[int]] = mapped_column(ForeignKey("workflows.workflow_id"))
+    # workflow: Mapped[Optional["Workflow"]] = relationship(back_populates="request", uselist=False)
+
+    # ✅ 6. RequestFulfillment (팀별 작업 지시) 와의 1:N 관계 추가
+    fulfillments: Mapped[list["RequestFulfillment"]] = relationship(
+        back_populates="request", cascade="all, delete-orphan"
+    )
+
+# ✅ 7. RequestFulfillment 테이블 신설 (핵심)
+class RequestFulfillment(Base):
+    __tablename__ = "request_fulfillments"
+    fulfillment_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     
+    request_id: Mapped[int] = mapped_column(ForeignKey("requests.request_id", ondelete="CASCADE"))
+    assigned_team_id: Mapped[int] = mapped_column(ForeignKey("teams.team_id"))
+    
+    workflow_id: Mapped[Optional[int]] = mapped_column(ForeignKey("workflows.workflow_id"))
+    
+    # 팀별 진행 상태
+    status: Mapped[str] = mapped_column(String, default="PENDING") # e.g., PENDING, IN_PROGRESS, COMPLETED, REJECTED
+    
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, server_default=func.now())
+    completed_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+
+    # 관계 설정
+    request: Mapped["Request"] = relationship(back_populates="fulfillments")
+    assigned_team: Mapped["Team"] = relationship(back_populates="fulfillments")
+    workflow: Mapped[Optional["Workflow"]] = relationship(back_populates="fulfillment")
+
 
 class WorkflowTemplate(Base):
     __tablename__ = "workflow_templates"
@@ -179,10 +229,9 @@ class WorkflowTemplate(Base):
     template_name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
-
     definitions: Mapped[list["WorkflowTemplateDefinition"]] = relationship(back_populates="workflow_template")
     workflows: Mapped[list["Workflow"]] = relationship(back_populates="workflow_template")
-    request_templates: Mapped[list["RequestTemplate"]] = relationship(back_populates="workflow_template")
+    # request_templates: Mapped[list["RequestTemplate"]] = relationship(back_populates="workflow_template") # RequestTemplate과의 관계 제거
     teams: Mapped[list["Team"]] = relationship(
         back_populates="workflow_templates", secondary="workflow_template_team_mappings"
     )
@@ -209,15 +258,18 @@ class Workflow(Base):
     workflow_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     workflow_template_id: Mapped[Optional[int]] = mapped_column(ForeignKey("workflow_templates.workflow_template_id"))
     status: Mapped[Optional[str]] = mapped_column(String, default="PENDING")
-    assigned_team_id: Mapped[Optional[int]] = mapped_column(ForeignKey("teams.team_id"))
+    # assigned_team_id: Mapped[Optional[int]] = mapped_column(ForeignKey("teams.team_id")) # RequestFulfillment가 담당
     created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True, server_default=func.now())
     completed_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
     parameters: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     workflow_template: Mapped[Optional["WorkflowTemplate"]] = relationship(back_populates="workflows")
-    assigned_team: Mapped[Optional["Team"]] = relationship(back_populates="workflows")
+    # assigned_team: Mapped[Optional["Team"]] = relationship(back_populates="workflows")
     tasks: Mapped[list["Task"]] = relationship(back_populates="workflow", cascade="all, delete-orphan")
-    request: Mapped[Optional["Request"]] = relationship(back_populates="workflow", uselist=False, cascade="all, delete-orphan")
+    
+    # ✅ 8. Request와의 직접적인 관계를 RequestFulfillment로 변경
+    fulfillment: Mapped[Optional["RequestFulfillment"]] = relationship(back_populates="workflow", uselist=False)
+
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -227,7 +279,6 @@ class Task(Base):
     status: Mapped[Optional[str]] = mapped_column(String, default="PENDING")
     created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True, server_default=func.now())
     completed_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
-    # ★★★ task_info_params -> parameters 로 이름 변경 ★★★
     parameters: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     task_template: Mapped[Optional["TaskTemplate"]] = relationship(back_populates="tasks")
